@@ -60,6 +60,14 @@ public class RecapActivity extends AppCompatActivity {
     private TextView totalView;
     private TextView artistView;
     private TextView trackView;
+
+    private TextView periodTotalDescription;
+    private TextView chartTitle;
+    private TextView chartSubtitle;
+    private TextView bestDayTitle;
+    private TextView artistPeriodTitle;
+    private TextView trackPeriodTitle;
+    private TextView bestDayDescription;
     private TextView topArtistsView;
     private LinearLayout topTracksView;
     private TextView periodView;
@@ -83,6 +91,13 @@ public class RecapActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_recap);
         Button exportButton = findViewById(R.id.exportRecapButton);
+        periodTotalDescription = findViewById(R.id.periodTotalDescription);
+        chartTitle = findViewById(R.id.chartTitle);
+        chartSubtitle = findViewById(R.id.chartSubtitle);
+        bestDayTitle = findViewById(R.id.bestDayTitle);
+        artistPeriodTitle = findViewById(R.id.artistPeriodTitle);
+        trackPeriodTitle = findViewById(R.id.trackPeriodTitle);
+        bestDayDescription = findViewById(R.id.bestDayDescription);
 
         exportButton.setOnClickListener(v -> {
             if (paletaPronta) {
@@ -110,12 +125,6 @@ public class RecapActivity extends AppCompatActivity {
         periodView = findViewById(R.id.weekPeriod);
         DailyActivityChart chart = findViewById(R.id.dailyActivityChart);
 
-        Map<String, Long> dailyTotals =
-                PlaybackStatistics.getDailyTotals(history);
-
-        chart.setData(dailyTotals);
-        atualizarMelhorDia(dailyTotals);
-
         weekButton.setOnClickListener(v -> carregarPeriodo(SEMANA));
         monthButton.setOnClickListener(v -> carregarPeriodo(MES));
         yearButton.setOnClickListener(v -> carregarPeriodo(ANO));
@@ -125,6 +134,37 @@ public class RecapActivity extends AppCompatActivity {
 
     private void carregarPeriodo(int periodo) {
         periodoAtual = periodo;
+
+        if (periodo == SEMANA) {
+
+            periodTotalDescription.setText("DE MÚSICA NESTA SEMANA");
+            chartTitle.setText("SEU RITMO NA SEMANA");
+            chartSubtitle.setText("Minutos ouvidos por dia");
+            bestDayTitle.setText("SEU DIA MAIS MUSICAL");
+            bestDayDescription.setText("Seu dia com mais música nos últimos 7 dias.");
+            artistPeriodTitle.setText("ARTISTA DA SEMANA");
+            trackPeriodTitle.setText("MÚSICA DA SEMANA");
+
+        } else if (periodo == MES) {
+
+            periodTotalDescription.setText("DE MÚSICA NESTE MÊS");
+            chartTitle.setText("SEU RITMO NO MÊS");
+            chartSubtitle.setText("Minutos ouvidos por mês");
+            bestDayTitle.setText("SEU DIA MAIS MUSICAL");
+            bestDayDescription.setText("Seu dia com mais música neste mês.");
+            artistPeriodTitle.setText("ARTISTA DO MÊS");
+            trackPeriodTitle.setText("MÚSICA DO MÊS");
+
+        } else {
+
+            periodTotalDescription.setText("DE MÚSICA NESTE ANO");
+            chartTitle.setText("SEU RITMO NO ANO");
+            chartSubtitle.setText("Minutos ouvidos por ano");
+            bestDayTitle.setText("SEU MÊS MAIS MUSICAL");
+            bestDayDescription.setText("Seu mês com mais música neste ano.");
+            artistPeriodTitle.setText("ARTISTA DO ANO");
+            trackPeriodTitle.setText("MÚSICA DO ANO");
+        }
 
         long total;
         String artists;
@@ -147,6 +187,27 @@ public class RecapActivity extends AppCompatActivity {
             total = PlaybackStatistics.getYearlyTotal(history);
             artists = PlaybackStatistics.getYearlyTopArtists(history);
             tracks = PlaybackStatistics.getYearlyTopTracks(history);
+        }
+
+        DailyActivityChart chart = findViewById(R.id.dailyActivityChart);
+
+        if (periodo == SEMANA) {
+
+            chart.setData(
+                    PlaybackStatistics.getDailyTotals(history)
+            );
+
+        } else if (periodo == MES) {
+
+            chart.setMonthlyData(
+                    PlaybackStatistics.getMonthlyTotalsLastMonths(history, 7)
+            );
+
+        } else {
+
+            chart.setYearlyData(
+                    PlaybackStatistics.getYearlyTotalsLastYears(history, 5)
+            );
         }
 
         rankingTracksAtual = tracks;

@@ -4,7 +4,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
@@ -12,6 +11,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.Set;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.LinkedHashMap;
 
 
 public class PlaybackStatistics {
@@ -91,6 +93,77 @@ public class PlaybackStatistics {
         }
 
         return dailyTotals;
+    }
+
+    // Total de reprodução dos últimos 7 meses
+    public static Map<String, Long> getMonthlyTotalsLastMonths(
+            JSONObject history, int count) {
+
+        Map<String, Long> dailyTotals = getDailyTotals(history);
+        Map<String, Long> monthlyTotals = new LinkedHashMap<>();
+
+        YearMonth currentMonth = YearMonth.now();
+
+        // Inicializa os meses, inclusive os que não tiveram reprodução
+        for (int i = count - 1; i >= 0; i--) {
+            YearMonth month = currentMonth.minusMonths(i);
+            monthlyTotals.put(month.toString(), 0L);
+        }
+
+        // Soma os segundos de cada dia dentro do respectivo mês
+        for (Map.Entry<String, Long> entry : dailyTotals.entrySet()) {
+
+            String date = entry.getKey();
+
+            if (date.length() < 10) continue;
+
+            String month = date.substring(0, 7);
+
+            if (monthlyTotals.containsKey(month)) {
+                monthlyTotals.put(
+                        month,
+                        monthlyTotals.get(month) + entry.getValue()
+                );
+            }
+        }
+
+        return monthlyTotals;
+    }
+
+
+    // Total de reprodução dos últimos 5 anos
+    public static Map<String, Long> getYearlyTotalsLastYears(
+            JSONObject history, int count) {
+
+        Map<String, Long> dailyTotals = getDailyTotals(history);
+        Map<String, Long> yearlyTotals = new LinkedHashMap<>();
+
+        int currentYear = LocalDate.now().getYear();
+
+        // Inicializa os anos, inclusive os que não tiveram reprodução
+        for (int i = count - 1; i >= 0; i--) {
+            String year = String.valueOf(currentYear - i);
+            yearlyTotals.put(year, 0L);
+        }
+
+        // Soma os segundos de cada dia dentro do respectivo ano
+        for (Map.Entry<String, Long> entry : dailyTotals.entrySet()) {
+
+            String date = entry.getKey();
+
+            if (date.length() < 10) continue;
+
+            String year = date.substring(0, 4);
+
+            if (yearlyTotals.containsKey(year)) {
+                yearlyTotals.put(
+                        year,
+                        yearlyTotals.get(year) + entry.getValue()
+                );
+            }
+        }
+
+        return yearlyTotals;
     }
     public static long getWeeklyTotal(JSONObject history) {
 

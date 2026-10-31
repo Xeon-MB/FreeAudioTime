@@ -16,6 +16,8 @@ import android.content.Intent;
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import android.os.Handler;
+import android.os.Looper;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,6 +33,22 @@ public class MediaNotificationListener extends NotificationListenerService {
     private long playbackStartTime = 0;
     private long accumulatedTime = 0;
     private boolean isPlaying = false;
+
+    private final Handler saveHandler = new Handler(Looper.getMainLooper());
+
+    private final Runnable periodicSave = new Runnable() {
+        @Override
+        public void run() {
+            if (isPlaying) {
+                saveElapsedTime();
+                savePlaybackHistory();
+
+                Log.d(TAG, "Salvamento periódico realizado.");
+
+                saveHandler.postDelayed(this, 30_000);
+            }
+        }
+    };
     private final Map<String, Long> trackTimes = new HashMap<>();
     private final Map<String, String> trackArtists = new HashMap<>();
 
@@ -162,6 +180,15 @@ public class MediaNotificationListener extends NotificationListenerService {
         }
     }
 
+    private void startPeriodicSave() {
+        saveHandler.removeCallbacks(periodicSave);
+        saveHandler.postDelayed(periodicSave, 30_000);
+    }
+
+    private void stopPeriodicSave() {
+        saveHandler.removeCallbacks(periodicSave);
+    }
+
     private void saveElapsedTime() {
 
         if (!isPlaying || currentTrackTitle == null) {
@@ -214,8 +241,11 @@ public class MediaNotificationListener extends NotificationListenerService {
         if (playbackState == PlaybackState.STATE_PLAYING) {
 
             if (!isPlaying) {
+
                 playbackStartTime = SystemClock.elapsedRealtime();
                 isPlaying = true;
+
+                startPeriodicSave();
 
                 Log.d(TAG, "Contagem iniciada!");
             }
@@ -226,8 +256,9 @@ public class MediaNotificationListener extends NotificationListenerService {
 
                 saveElapsedTime();
 
-
                 isPlaying = false;
+
+                stopPeriodicSave();
 
                 savePlaybackHistory();
 
@@ -237,7 +268,6 @@ public class MediaNotificationListener extends NotificationListenerService {
             }
         }
     }
-
     private void refreshSessions() {
         if (manager == null) {
             return;
@@ -455,6 +485,13 @@ public class MediaNotificationListener extends NotificationListenerService {
 
     private void unregisterCurrentController() {
 
+        if (isPlaying) {
+            saveElapsedTime();
+            isPlaying = false;
+            stopPeriodicSave();
+            savePlaybackHistory();
+        }
+
         if (currentController != null && controllerCallback != null) {
 
             currentController.unregisterCallback(controllerCallback);
@@ -467,6 +504,14 @@ public class MediaNotificationListener extends NotificationListenerService {
 
     @Override
     public void onListenerDisconnected() {
+
+        if (isPlaying) {
+            saveElapsedTime();
+            isPlaying = false;
+        }
+
+        stopPeriodicSave();
+        savePlaybackHistory();
 
         if (manager != null && sessionsListener != null) {
             manager.removeOnActiveSessionsChangedListener(

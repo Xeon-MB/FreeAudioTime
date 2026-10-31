@@ -123,6 +123,7 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/periodTotalDescription"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
@@ -143,6 +144,7 @@
             android:padding="18dp">
 
             <TextView
+                android:id="@+id/chartTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="SEU RITMO NA SEMANA"
@@ -152,6 +154,7 @@
                 android:letterSpacing="0.08" />
 
             <TextView
+                android:id="@+id/chartSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
@@ -177,6 +180,7 @@
             android:padding="20dp">
 
             <TextView
+                android:id="@+id/bestDayTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="SEU DIA MAIS MUSICAL"
@@ -331,6 +335,7 @@
             android:padding="18dp">
 
             <TextView
+                android:id="@+id/artistPeriodTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="ARTISTA DA SEMANA"
@@ -365,6 +370,7 @@
                 android:background="@color/text_yellow" />
 
             <TextView
+                android:id="@+id/trackPeriodTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="MÚSICA DA SEMANA"
