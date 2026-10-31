@@ -339,6 +339,8 @@ public class MediaNotificationListener extends NotificationListenerService {
                 MediaMetadata.METADATA_KEY_DURATION
         );
 
+        currentTrackDuration = duration;
+
 
 
         getSharedPreferences("current_track", MODE_PRIVATE)
@@ -394,6 +396,8 @@ public class MediaNotificationListener extends NotificationListenerService {
         getSharedPreferences("current_track", MODE_PRIVATE)
                 .edit()
                 .putLong("position", currentTrackPosition)
+                .putLong("positionUpdatedAt", SystemClock.elapsedRealtime())
+                .putLong("duration", currentTrackDuration)
                 .putBoolean("isPlaying",
                         playbackState == PlaybackState.STATE_PLAYING)
                 .apply();

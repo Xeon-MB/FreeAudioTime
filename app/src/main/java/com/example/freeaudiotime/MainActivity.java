@@ -18,6 +18,10 @@ import android.graphics.BitmapFactory;
 import android.widget.ImageView;
 import androidx.core.content.ContextCompat;
 import android.util.Log;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.ProgressBar;
+import android.os.SystemClock;
 
 import android.content.Intent;
 import android.widget.Button;
@@ -26,6 +30,21 @@ import android.widget.Button;
 import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
+
+    private final Runnable progressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            atualizarProgresso();
+            progressHandler.postDelayed(this, 1000);
+        }
+    };
+
+    private Handler progressHandler = new Handler(Looper.getMainLooper());
+
+
+    private ProgressBar currentTrackProgress;
+    private TextView currentTrackElapsed;
+    private TextView currentTrackRemaining;
     private boolean receiverRegistrado = false;
 
     private final BroadcastReceiver trackReceiver = new BroadcastReceiver() {
@@ -42,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
 
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+        currentTrackProgress = findViewById(R.id.currentTrackProgress);
+        currentTrackElapsed = findViewById(R.id.currentTrackElapsed);
+        currentTrackRemaining = findViewById(R.id.currentTrackRemaining);
 
         findViewById(R.id.toggleTheme).setOnClickListener(v -> {
             ThemeManager.toggleTheme(this);
@@ -106,10 +128,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         carregarMusicaAtual();
+        progressHandler.removeCallbacks(progressRunnable);
+        progressHandler.post(progressRunnable);
     }
 
     @Override
     protected void onStop() {
+        progressHandler.removeCallbacks(progressRunnable);
         super.onStop();
 
         if (receiverRegistrado) {
@@ -223,4 +248,59 @@ public class MainActivity extends AppCompatActivity {
 
         return segundosRestantes + "s";
     }
+
+    private void atualizarProgresso() {
+
+        android.content.SharedPreferences prefs =
+                getSharedPreferences("current_track", MODE_PRIVATE);
+
+        long duration = prefs.getLong("duration", 0);
+        long position = prefs.getLong("position", 0);
+        long updatedAt = prefs.getLong("positionUpdatedAt", 0);
+
+        boolean isPlaying = prefs.getBoolean("isPlaying", false);
+
+        if (isPlaying && updatedAt > 0) {
+            long elapsed = SystemClock.elapsedRealtime() - updatedAt;
+            position += elapsed;
+        }
+
+        if (duration > 0) {
+            position = Math.min(position, duration);
+        } else {
+            position = 0;
+        }
+
+        currentTrackProgress.setMax(1000);
+
+        int progress = duration > 0
+                ? (int) ((double) position / duration * 1000)
+                : 0;
+
+        currentTrackProgress.setProgress(progress);
+
+        currentTrackElapsed.setText(formatarMinutosSegundos(position));
+
+        long remaining = Math.max(0, duration - position);
+
+        currentTrackRemaining.setText(
+                "-" + formatarMinutosSegundos(remaining)
+        );
+    }
+
+    private String formatarMinutosSegundos(long milissegundos) {
+
+        long totalSegundos = milissegundos / 1000;
+
+        long minutos = totalSegundos / 60;
+        long segundos = totalSegundos % 60;
+
+        return String.format(
+                java.util.Locale.getDefault(),
+                "%d:%02d",
+                minutos,
+                segundos
+        );
+    }
+
 }
