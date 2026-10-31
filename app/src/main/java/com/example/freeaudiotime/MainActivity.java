@@ -9,6 +9,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import java.io.File;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.widget.ImageView;
+import androidx.core.content.ContextCompat;
+import android.util.Log;
 
 import android.content.Intent;
 import android.widget.Button;
@@ -17,6 +26,14 @@ import android.widget.Button;
 import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
+    private boolean receiverRegistrado = false;
+
+    private final BroadcastReceiver trackReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            carregarMusicaAtual();
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,9 +86,71 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        if (!receiverRegistrado) {
+            IntentFilter filter = new IntentFilter(
+                    "com.example.freeaudiotime.TRACK_UPDATED"
+            );
+
+            ContextCompat.registerReceiver(
+                    this,
+                    trackReceiver,
+                    filter,
+                    ContextCompat.RECEIVER_NOT_EXPORTED
+            );
+
+            receiverRegistrado = true;
+        }
+
+        carregarMusicaAtual();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        if (receiverRegistrado) {
+            unregisterReceiver(trackReceiver);
+            receiverRegistrado = false;
+        }
+    }
+
+    private void carregarMusicaAtual() {
+
+        android.content.SharedPreferences prefs =
+                getSharedPreferences("current_track", MODE_PRIVATE);
+
+        String title = prefs.getString("title", "Nenhuma música");
+        String artist = prefs.getString("artist", "Artista desconhecido");
+
+        TextView titleView = findViewById(R.id.currentTrackTitle);
+        TextView artistView = findViewById(R.id.currentTrackArtist);
+        ImageView artView = findViewById(R.id.currentTrackCover);
+
+        titleView.setText(title);
+        artistView.setText(artist);
+
+        File imageFile = new File(getFilesDir(), "current_album_art.png");
+
+        if (imageFile.exists()) {
+            Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
+
+            if (bitmap != null) {
+                artView.setImageBitmap(bitmap);
+                return;
+            }
+        }
+
+        artView.setImageResource(android.R.drawable.ic_media_play);
+    }
+
     private void carregarEstatisticas() {
 
         JSONObject history = PlaybackStorage.load(this);
+        Log.d("AudioTime", "Histórico carregado: " + history.toString());
 
         long totalTime = history.optLong("totalTime", 0);
 
@@ -119,6 +198,9 @@ public class MainActivity extends AppCompatActivity {
 
         artistView.setText(mostPlayedArtist);
         trackView.setText(mostPlayedTrack);
+
+        Log.d("AudioTime", "Música mais tocada: " + mostPlayedTrack);
+        Log.d("AudioTime", "Ranking de músicas: " + topTracks);
     }
 
 

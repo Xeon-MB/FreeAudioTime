@@ -16,11 +16,50 @@ import java.util.Set;
 
 public class PlaybackStatistics {
 
+    private static JSONArray getUniqueSessions(JSONObject history) {
+
+        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray uniqueSessions = new JSONArray();
+
+        if (sessions == null) {
+            return uniqueSessions;
+        }
+
+        Set<String> seenSessions = new HashSet<>();
+
+        for (int i = 0; i < sessions.length(); i++) {
+
+            JSONObject session = sessions.optJSONObject(i);
+
+            if (session == null) {
+                continue;
+            }
+
+            String date = session.optString("date", "");
+            String title = session.optString("title", "");
+            String artist = session.optString("artist", "");
+            long duration = session.optLong("duration", 0);
+
+            String key = new JSONArray()
+                    .put(date)
+                    .put(title)
+                    .put(artist)
+                    .put(duration)
+                    .toString();
+
+            if (seenSessions.add(key)) {
+                uniqueSessions.put(session);
+            }
+        }
+
+        return uniqueSessions;
+    }
+
     public static Map<String, Long> getDailyTotals(JSONObject history) {
 
         Map<String, Long> dailyTotals = new HashMap<>();
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) {
             return dailyTotals;
@@ -134,7 +173,7 @@ public class PlaybackStatistics {
     }
     public static String getMostPlayedArtist(JSONObject history) {
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) {
             return "Nenhum artista";
@@ -178,7 +217,7 @@ public class PlaybackStatistics {
 
     public static String getMostPlayedTrack(JSONObject history) {
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) {
             return "Nenhuma música";
@@ -224,7 +263,7 @@ public class PlaybackStatistics {
     }
     public static String getTopArtists(JSONObject history) {
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) {
             return "Nenhum artista";
@@ -275,7 +314,7 @@ public class PlaybackStatistics {
     }
     public static String getTopTracks(JSONObject history) {
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) {
             return "Nenhuma música";
@@ -334,7 +373,7 @@ public class PlaybackStatistics {
     }
     public static String getWeeklyTopArtists(JSONObject history) {
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) {
             return "Nenhum artista";
@@ -410,7 +449,7 @@ public class PlaybackStatistics {
     }
     public static String getWeeklyTopTracks(JSONObject history) {
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) {
             return "Nenhuma música";
@@ -493,7 +532,7 @@ public class PlaybackStatistics {
     }
     public static String getMonthlyTopArtists(JSONObject history) {
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) return "Nenhum artista";
 
@@ -554,7 +593,7 @@ public class PlaybackStatistics {
     }
     public static String getMonthlyTopTracks(JSONObject history) {
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) return "Nenhuma música";
 
@@ -624,7 +663,7 @@ public class PlaybackStatistics {
     }
     public static String getYearlyTopArtists(JSONObject history) {
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) return "Nenhum artista";
 
@@ -683,7 +722,7 @@ public class PlaybackStatistics {
     }
     public static String getYearlyTopTracks(JSONObject history) {
 
-        JSONArray sessions = history.optJSONArray("sessions");
+        JSONArray sessions = getUniqueSessions(history);
 
         if (sessions == null) return "Nenhuma música";
 

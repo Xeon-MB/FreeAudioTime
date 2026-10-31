@@ -9,6 +9,10 @@ import android.media.session.PlaybackState;
 import android.service.notification.NotificationListenerService;
 import android.util.Log;
 import android.os.SystemClock;
+import android.graphics.Bitmap;
+import java.io.File;
+import java.io.FileOutputStream;
+import android.content.Intent;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -41,10 +45,22 @@ public class MediaNotificationListener extends NotificationListenerService {
     private MediaSessionManager.OnActiveSessionsChangedListener sessionsListener;
     private String currentTrackTitle = null;
 
+    private long currentTrackDuration = 0;
+    private long currentTrackPosition = 0;
+
     @Override
     public void onListenerConnected() {
         super.onListenerConnected();
         JSONObject history = PlaybackStorage.load(this);
+
+        // Limpa os dados que já estavam na memória
+        while (playbackSessions.length() > 0) {
+            playbackSessions.remove(playbackSessions.length() - 1);
+        }
+
+        trackTimes.clear();
+        trackArtists.clear();
+
 
         JSONArray savedSessions = history.optJSONArray("sessions");
 
@@ -64,7 +80,7 @@ public class MediaNotificationListener extends NotificationListenerService {
 
         if (tracks != null) {
             for (int i = 0; i < tracks.length(); i++) {
-                JSONObject track = null;
+                JSONObject track;
                 try {
                     track = tracks.getJSONObject(i);
                 } catch (JSONException e) {
@@ -319,23 +335,41 @@ public class MediaNotificationListener extends NotificationListenerService {
                 MediaMetadata.METADATA_KEY_ARTIST
         );
 
+        long duration = metadata.getLong(
+                MediaMetadata.METADATA_KEY_DURATION
+        );
+
+
+
+        getSharedPreferences("current_track", MODE_PRIVATE)
+                .edit()
+                .putLong("duration", duration)
+                .apply();
+
+        if (title == null && metadata.getDescription() != null) {
+            title = String.valueOf(metadata.getDescription().getTitle());
+        }
+
+        if (artist == null && metadata.getDescription() != null) {
+            artist = metadata.getDescription().getSubtitle() != null
+                    ? metadata.getDescription().getSubtitle().toString()
+                    : null;
+        }
+
         if (title != null && artist != null) {
             trackArtists.put(title, artist);
         }
 
+        salvarDadosMusica(metadata, title, artist);
+
         if (title != null && !title.equals(currentTrackTitle)) {
-
-            // Salva o tempo da música anterior
             saveElapsedTime();
-
             savePlaybackHistory();
 
-            // Atualiza a música atual
             currentTrackTitle = title;
 
             Log.d(TAG, "Nova faixa: " + currentTrackTitle);
 
-            // Reinicia a referência do cronômetro
             if (isPlaying) {
                 playbackStartTime = SystemClock.elapsedRealtime();
             }
@@ -354,6 +388,21 @@ public class MediaNotificationListener extends NotificationListenerService {
 
         int playbackState = state.getState();
         updatePlaybackTimer(state);
+
+        currentTrackPosition = Math.max(0, state.getPosition());
+
+        getSharedPreferences("current_track", MODE_PRIVATE)
+                .edit()
+                .putLong("position", currentTrackPosition)
+                .putBoolean("isPlaying",
+                        playbackState == PlaybackState.STATE_PLAYING)
+                .apply();
+
+        Intent intent = new Intent(
+                "com.example.freeaudiotime.TRACK_UPDATED"
+        );
+        intent.setPackage(getPackageName());
+        sendBroadcast(intent);
 
         String description;
 
@@ -412,6 +461,50 @@ public class MediaNotificationListener extends NotificationListenerService {
         super.onListenerDisconnected();
 
         Log.d(TAG, "Serviço desconectado!");
+    }
+
+
+    private void salvarDadosMusica(MediaMetadata metadata, String title, String artist) {
+
+        Bitmap artwork = metadata.getBitmap(
+                MediaMetadata.METADATA_KEY_ALBUM_ART
+        );
+
+        if (artwork == null) {
+            artwork = metadata.getBitmap(
+                    MediaMetadata.METADATA_KEY_ART
+            );
+        }
+
+        getSharedPreferences("current_track", MODE_PRIVATE)
+                .edit()
+                .putString("title", title)
+                .putString("artist", artist)
+                .apply();
+
+        File imageFile = new File(
+                getFilesDir(),
+                "current_album_art.png"
+        );
+
+        try {
+            if (artwork != null) {
+                try (FileOutputStream output = new FileOutputStream(imageFile)) {
+                    artwork.compress(Bitmap.CompressFormat.PNG, 100, output);
+                }
+            } else {
+                imageFile.delete();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao salvar capa da música", e);
+        }
+
+        Intent intent = new Intent(
+                "com.example.freeaudiotime.TRACK_UPDATED"
+        );
+
+        intent.setPackage(getPackageName());
+        sendBroadcast(intent);
     }
 }
 
