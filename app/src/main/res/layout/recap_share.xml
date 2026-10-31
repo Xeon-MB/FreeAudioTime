@@ -4,151 +4,286 @@
     android:layout_width="360dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:background="#101D17">
+    android:padding="18dp"
+    android:background="#080A08">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="FreeAudioTime"
-        android:textColor="#DCE9B0"
-        android:textSize="17sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="35dp"
-        android:text="SUA MÚSICA.\nSEUS MOMENTOS."
-        android:textColor="#E5EDCF"
-        android:textSize="29sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/sharePeriod"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="SEMANA ATUAL"
-        android:textColor="#B7C8B0"
-        android:textSize="12sp"
-        android:letterSpacing="0.12" />
-
+    <!-- CABEÇALHO -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="28dp"
-        android:padding="22dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="FREEAUDIOTIME®"
+            android:textColor="#B7FF00"
+            android:textSize="25sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed" />
+
+        <TextView
+            android:id="@+id/shareVolume"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="VOL. 001"
+            android:textColor="#F0EBDD"
+            android:textSize="10sp"
+            android:letterSpacing="0.08" />
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:background="#B7FF00" />
+
+    <TextView
+        android:id="@+id/sharePeriod"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="YOUR WEEK IN MUSIC"
+        android:textColor="#B7FF00"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.12" />
+
+    <!-- TEMPO TOTAL -->
+    <LinearLayout
+        android:id="@+id/shareTimeCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:padding="14dp"
         android:orientation="vertical"
-        android:background="#244536">
+        android:background="#B7FF00">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="TEMPO DE REPRODUÇÃO"
-            android:textColor="#DCE9B0"
-            android:textSize="11sp"
-            android:textStyle="bold" />
+            android:text="TOTAL LISTENING TIME"
+            android:textColor="#080A08"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
 
         <TextView
             android:id="@+id/shareTotal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="0min"
-            android:textColor="#F4F2DF"
-            android:textSize="42sp"
+            android:layout_marginTop="2dp"
+            android:text="18H 42MIN"
+            android:textColor="#080A08"
+            android:textSize="47sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed"
+            android:includeFontPadding="false" />
+
+        <TextView
+            android:id="@+id/shareTotalMinutes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:text="/// 1122 MIN"
+            android:textColor="#080A08"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
     </LinearLayout>
 
+    <!-- ARTISTA E DESCOBERTA -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/shareArtistImage"
+                android:layout_width="match_parent"
+                android:layout_height="190dp"
+                android:scaleType="centerCrop"
+                android:background="#252823"
+                android:contentDescription="Artista mais ouvido" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="ARTIST Nº 01"
+                android:textColor="#080A08"
+                android:background="#B7FF00"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/shareArtist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="LAUFEY"
+                android:textColor="#F0EBDD"
+                android:textSize="27sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed" />
+
+            <TextView
+                android:id="@+id/shareArtistTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="7H 25MIN"
+                android:textColor="#B7FF00"
+                android:textSize="19sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:background="#111511">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DISCOVERY"
+                android:textColor="#B7FF00"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/shareArtistCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="12"
+                android:textColor="#F0EBDD"
+                android:textSize="37sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ARTISTS"
+                android:textColor="#F0EBDD"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="#555B4C" />
+
+            <TextView
+                android:id="@+id/shareTrackCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="42"
+                android:textColor="#F0EBDD"
+                android:textSize="37sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TRACKS"
+                android:textColor="#F0EBDD"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- MELHOR DIA -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:padding="20dp"
+        android:padding="12dp"
         android:orientation="vertical"
-        android:background="#E5EDCF">
+        android:background="#111511">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="ARTISTA FAVORITO"
-            android:textColor="#52664E"
+            android:text="PEAK DAY / BEST MOMENT"
+            android:textColor="#B7FF00"
             android:textSize="11sp"
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/shareArtist"
+            android:id="@+id/shareBestDay"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Nenhum artista"
-            android:textColor="#193D30"
-            android:textSize="23sp"
-            android:textStyle="bold" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="18dp"
-            android:background="#A8B99A" />
+            android:layout_marginTop="4dp"
+            android:text="FRIDAY"
+            android:textColor="#F0EBDD"
+            android:textSize="25sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed" />
 
         <TextView
+            android:id="@+id/shareBestDayTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:text="MÚSICA MAIS OUVIDA"
-            android:textColor="#52664E"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/shareTrack"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Nenhuma música"
-            android:textColor="#193D30"
-            android:textSize="20sp"
+            android:text="3H 18MIN"
+            android:textColor="#B7FF00"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
     </LinearLayout>
 
+    <!-- TOP MÚSICAS -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:padding="20dp"
-        android:orientation="vertical"
-        android:background="#39351F">
+        android:layout_marginTop="20dp"
+        android:orientation="vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="SEUS TOP ARTISTAS"
-            android:textColor="#D7C77E"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/shareTopArtists"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Nenhum registro"
-            android:textColor="#F4F2DF"
-            android:textSize="14sp"
-            android:lineSpacingExtra="7dp" />
+            android:gravity="center_vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:text="SUAS TOP MÚSICAS"
-            android:textColor="#D7C77E"
-            android:textSize="11sp"
-            android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="YOUR TOP TRACKS"
+                android:textColor="#B7FF00"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:background="#B7FF00" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TOP 03"
+                android:textColor="#F0EBDD"
+                android:textSize="10sp" />
+
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/shareTopTracks"
@@ -159,15 +294,30 @@
 
     </LinearLayout>
 
+    <!-- RODAPÉ -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="18dp"
+        android:background="#B7FF00" />
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="28dp"
-        android:gravity="center"
-        android:text="CADA MINUTO CONTA."
-        android:textColor="#DCE9B0"
+        android:layout_marginTop="12dp"
+        android:text="A PERSONAL MUSIC ARCHIVE"
+        android:textColor="#B7FF00"
         android:textSize="12sp"
         android:textStyle="bold"
-        android:letterSpacing="0.15" />
+        android:letterSpacing="0.12" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="EVERY MINUTE HAS A STORY.  //  FAT® 2026"
+        android:textColor="#F0EBDD"
+        android:textSize="10sp"
+        android:letterSpacing="0.08" />
 
 </LinearLayout>

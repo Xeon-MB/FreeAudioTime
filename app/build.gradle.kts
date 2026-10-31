@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.material)
     implementation("de.hdodenhof:circleimageview:3.1.0")
+    implementation("androidx.palette:palette:1.0.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)

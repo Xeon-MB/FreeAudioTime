@@ -28,6 +28,11 @@ import android.text.TextUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.File;
+import androidx.palette.graphics.Palette;
+import android.graphics.drawable.ColorDrawable;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
 
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -64,6 +69,15 @@ public class RecapActivity extends AppCompatActivity {
 
     private android.widget.ImageView weeklyArtistImage;
 
+    private int corFundo = Color.rgb(16, 29, 23);
+    private int corDestaque = Color.rgb(36, 69, 54);
+    private int corTexto = Color.rgb(244, 242, 223);
+
+    private boolean paletaPronta = false;
+    private boolean exportacaoPendente = false;
+
+    private int periodoAtual = SEMANA;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         ThemeManager.applySavedTheme(this);
@@ -71,7 +85,13 @@ public class RecapActivity extends AppCompatActivity {
         setContentView(R.layout.activity_recap);
         Button exportButton = findViewById(R.id.exportRecapButton);
 
-        exportButton.setOnClickListener(v -> salvarRecapComoImagem());
+        exportButton.setOnClickListener(v -> {
+            if (paletaPronta) {
+                salvarRecapComoImagem();
+            } else {
+                exportacaoPendente = true;
+            }
+        });
 
         history = PlaybackStorage.load(this);
 
@@ -105,6 +125,7 @@ public class RecapActivity extends AppCompatActivity {
     }
 
     private void carregarPeriodo(int periodo) {
+        periodoAtual = periodo;
 
         long total;
         String artists;
@@ -155,6 +176,7 @@ public class RecapActivity extends AppCompatActivity {
             DeezerService.buscarFotoArtista(this, artista, imagem -> {
                 if (imagem != null) {
                     weeklyArtistImage.setImageBitmap(imagem);
+                    extrairCores(imagem);
                 } else {
                     weeklyArtistImage.setImageResource(
                             R.drawable.ic_launcher_foreground
@@ -438,44 +460,120 @@ public class RecapActivity extends AppCompatActivity {
 
         View arte = LayoutInflater.from(this)
                 .inflate(R.layout.recap_share, null, false);
+        aplicarPaleta(arte);
+        View shareTimeCard = arte.findViewById(R.id.shareTimeCard);
 
-        // Copia os dados do período atualmente selecionado.
+        if (shareTimeCard != null) {
+            shareTimeCard.setBackgroundColor(corDestaque);
+        }
+
+        // Período
         ((TextView) arte.findViewById(R.id.sharePeriod))
                 .setText(periodView.getText());
 
+        // Tempo total
         ((TextView) arte.findViewById(R.id.shareTotal))
-                .setText(totalView.getText());
+                .setText(totalView.getText().toString().toUpperCase());
+
+        long totalSegundos = obterTotalPeriodo();
+        ((TextView) arte.findViewById(R.id.shareTotalMinutes))
+                .setText("/// " + (totalSegundos / 60) + " MIN");
+
+        // Artista favorito
+        String artistaCompleto = primeiroItem(
+                periodoAtual == SEMANA
+                        ? PlaybackStatistics.getWeeklyTopArtists(history)
+                        : periodoAtual == MES
+                          ? PlaybackStatistics.getMonthlyTopArtists(history)
+                          : PlaybackStatistics.getYearlyTopArtists(history)
+        );
+
+        String artista = artistaCompleto
+                .replaceFirst("^\\d+\\.\\s*", "");
+
+        if (artista.contains(" — ")) {
+            artista = artista.substring(0, artista.indexOf(" — ")).trim();
+        }
 
         ((TextView) arte.findViewById(R.id.shareArtist))
-                .setText(artistView.getText());
+                .setText(artista.toUpperCase());
 
-        ((TextView) arte.findViewById(R.id.shareTrack))
-                .setText(trackView.getText());
+        // Foto do artista
+        ImageView imagemArtista = arte.findViewById(R.id.shareArtistImage);
 
-        ((TextView) arte.findViewById(R.id.shareTopArtists))
-                .setText(topArtistsView.getText());
+        if (weeklyArtistImage.getDrawable() != null) {
+            imagemArtista.setImageDrawable(
+                    weeklyArtistImage.getDrawable()
+            );
+        }
 
-        LinearLayout shareTopTracks = arte.findViewById(R.id.shareTopTracks);
+        // Tempo do artista favorito
+        String tempoArtista = "—";
+
+        if (artistaCompleto.contains(" — ")) {
+            String[] partes = artistaCompleto.split(" — ", 2);
+            tempoArtista = partes[partes.length - 1].trim();
+        }
+
+        ((TextView) arte.findViewById(R.id.shareArtistTime))
+                .setText(tempoArtista.toUpperCase());
+
+        // Quantidade de artistas e músicas
+        int[] contagens = contarArtistasEMusicas();
+
+        ((TextView) arte.findViewById(R.id.shareArtistCount))
+                .setText(String.valueOf(contagens[0]));
+
+        ((TextView) arte.findViewById(R.id.shareTrackCount))
+                .setText(String.valueOf(contagens[1]));
+
+        // Melhor dia
+        TextView melhorDia = findViewById(R.id.bestDayName);
+        TextView tempoMelhorDia = findViewById(R.id.bestDayTime);
+
+        ((TextView) arte.findViewById(R.id.shareBestDay))
+                .setText(melhorDia.getText().toString().toUpperCase());
+
+        ((TextView) arte.findViewById(R.id.shareBestDayTime))
+                .setText(tempoMelhorDia.getText().toString().toUpperCase());
+
+        // Ranking de músicas
+        LinearLayout shareTopTracks =
+                arte.findViewById(R.id.shareTopTracks);
+
         mostrarRankingNaImagem(shareTopTracks);
 
-        int largura = (int) (360 * getResources()
-                .getDisplayMetrics().density);
+// Aplica as cores dinâmicas do recap
+        View shareCard = arte.findViewById(R.id.shareCard);
+        shareCard.setBackgroundColor(corFundo);
+
+        View timeCard = arte.findViewById(R.id.shareTimeCard);
+        timeCard.setBackgroundColor(corDestaque);
+
+        // Renderização
+        int largura = dp(360);
 
         int larguraSpec = View.MeasureSpec.makeMeasureSpec(
-                largura, View.MeasureSpec.EXACTLY);
+                largura, View.MeasureSpec.EXACTLY
+        );
 
         int alturaSpec = View.MeasureSpec.makeMeasureSpec(
-                0, View.MeasureSpec.UNSPECIFIED);
+                0, View.MeasureSpec.UNSPECIFIED
+        );
 
         arte.measure(larguraSpec, alturaSpec);
 
-        arte.layout(0, 0, arte.getMeasuredWidth(),
-                arte.getMeasuredHeight());
+        arte.layout(
+                0, 0,
+                arte.getMeasuredWidth(),
+                arte.getMeasuredHeight()
+        );
 
         Bitmap bitmap = Bitmap.createBitmap(
                 arte.getMeasuredWidth(),
                 arte.getMeasuredHeight(),
-                Bitmap.Config.ARGB_8888);
+                Bitmap.Config.ARGB_8888
+        );
 
         Canvas canvas = new Canvas(bitmap);
         arte.draw(canvas);
@@ -882,6 +980,175 @@ public class RecapActivity extends AppCompatActivity {
 
     private int dp(float valor) {
         return (int) (valor * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private void extrairCores(Bitmap bitmap) {
+        if (bitmap == null) {
+            paletaPronta = true;
+            verificarExportacaoPendente();
+            return;
+        }
+
+        paletaPronta = false;
+
+        Palette.from(bitmap).generate(palette -> {
+            corFundo = palette.getDarkMutedColor(
+                    Color.rgb(16, 29, 23)
+            );
+
+            corDestaque = palette.getVibrantColor(
+                    palette.getDarkVibrantColor(
+                            Color.rgb(36, 69, 54)
+                    )
+            );
+
+            corTexto = Color.WHITE;
+
+            paletaPronta = true;
+            verificarExportacaoPendente();
+        });
+    }
+
+    private void verificarExportacaoPendente() {
+        if (exportacaoPendente && paletaPronta) {
+            exportacaoPendente = false;
+            salvarRecapComoImagem();
+        }
+    }
+
+    private long obterTotalPeriodo() {
+
+        if (periodoAtual == SEMANA) {
+            return PlaybackStatistics.getWeeklyTotal(history);
+        }
+
+        if (periodoAtual == MES) {
+            return PlaybackStatistics.getMonthlyTotal(history);
+        }
+
+        return PlaybackStatistics.getYearlyTotal(history);
+        }
+
+    private int[] contarArtistasEMusicas() {
+
+        JSONArray sessoes = history.optJSONArray("sessions");
+
+        java.util.Set<String> artistas = new java.util.HashSet<>();
+        java.util.Set<String> musicas = new java.util.HashSet<>();
+
+        if (sessoes == null) {
+            return new int[]{0, 0};
+        }
+
+        LocalDate hoje = LocalDate.now();
+
+        LocalDate inicio;
+
+        if (periodoAtual == SEMANA) {
+            inicio = hoje.with(DayOfWeek.MONDAY);
+        } else if (periodoAtual == MES) {
+            inicio = hoje.withDayOfMonth(1);
+        } else {
+            inicio = hoje.withDayOfYear(1);
+        }
+
+        for (int i = 0; i < sessoes.length(); i++) {
+
+            JSONObject sessao = sessoes.optJSONObject(i);
+
+            if (sessao == null) continue;
+
+            String dataTexto = sessao.optString("date", "");
+
+            try {
+                LocalDate data = LocalDate.parse(dataTexto);
+
+                if (data.isBefore(inicio) || data.isAfter(hoje)) {
+                    continue;
+                }
+
+                String artista = sessao.optString("artist", "").trim();
+                String titulo = sessao.optString("title", "").trim();
+
+                if (!artista.isEmpty()) {
+                    artistas.add(artista);
+                }
+
+                if (!titulo.isEmpty() && !artista.isEmpty()) {
+                    musicas.add(titulo + "|" + artista);
+                }
+
+            } catch (Exception e) {
+                Log.e("AudioTime", "Erro ao contar sessão", e);
+            }
+        }
+
+        return new int[]{
+                artistas.size(),
+                musicas.size()
+        };
+    }
+
+    private void aplicarPaleta(View view) {
+
+        // Cores originais do XML
+        int verdeOriginal = Color.rgb(183, 255, 0);   // #B7FF00
+        int pretoOriginal = Color.rgb(8, 10, 8);      // #080A08
+        int painelOriginal = Color.rgb(17, 21, 17);   // #111511
+        int cremeOriginal = Color.rgb(240, 235, 221); // #F0EBDD
+
+        // Substitui as cores de fundo
+        if (view.getBackground() instanceof ColorDrawable) {
+
+            ColorDrawable fundo = (ColorDrawable) view.getBackground();
+            int corAtual = fundo.getColor();
+
+            if (corAtual == verdeOriginal) {
+                view.setBackgroundColor(corDestaque);
+
+            } else if (corAtual == pretoOriginal) {
+                view.setBackgroundColor(corFundo);
+
+            } else if (corAtual == painelOriginal) {
+                view.setBackgroundColor(escurecer(corFundo, 0.75f));
+            }
+        }
+
+        // Substitui as cores dos textos
+        if (view instanceof TextView) {
+
+            TextView texto = (TextView) view;
+            int corTextoAtual = texto.getCurrentTextColor();
+
+            if (corTextoAtual == verdeOriginal) {
+                texto.setTextColor(corDestaque);
+
+            } else if (corTextoAtual == pretoOriginal) {
+                texto.setTextColor(corFundo);
+
+            } else if (corTextoAtual == cremeOriginal) {
+                texto.setTextColor(corTexto);
+            }
+        }
+
+        // Percorre os elementos internos do layout
+        if (view instanceof ViewGroup) {
+
+            ViewGroup grupo = (ViewGroup) view;
+
+            for (int i = 0; i < grupo.getChildCount(); i++) {
+                aplicarPaleta(grupo.getChildAt(i));
+            }
+        }
+    }
+
+    private int escurecer(int cor, float fator) {
+
+        return Color.rgb(
+                (int) (Color.red(cor) * fator),
+                (int) (Color.green(cor) * fator),
+                (int) (Color.blue(cor) * fator)
+        );
     }
 
     }
