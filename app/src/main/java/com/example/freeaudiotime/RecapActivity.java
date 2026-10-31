@@ -30,9 +30,8 @@ import org.json.JSONObject;
 import java.io.File;
 import androidx.palette.graphics.Palette;
 import android.graphics.drawable.ColorDrawable;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
+import android.graphics.Typeface;
+
 
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -480,13 +479,14 @@ public class RecapActivity extends AppCompatActivity {
                 .setText("/// " + (totalSegundos / 60) + " MIN");
 
         // Artista favorito
-        String artistaCompleto = primeiroItem(
+        String rankingArtistas =
                 periodoAtual == SEMANA
                         ? PlaybackStatistics.getWeeklyTopArtists(history)
                         : periodoAtual == MES
                           ? PlaybackStatistics.getMonthlyTopArtists(history)
-                          : PlaybackStatistics.getYearlyTopArtists(history)
-        );
+                          : PlaybackStatistics.getYearlyTopArtists(history);
+
+        String artistaCompleto = primeiroItem(rankingArtistas);
 
         String artista = artistaCompleto
                 .replaceFirst("^\\d+\\.\\s*", "");
@@ -518,14 +518,12 @@ public class RecapActivity extends AppCompatActivity {
         ((TextView) arte.findViewById(R.id.shareArtistTime))
                 .setText(tempoArtista.toUpperCase());
 
-        // Quantidade de artistas e músicas
-        int[] contagens = contarArtistasEMusicas();
+        LinearLayout outrosArtistas =
+                arte.findViewById(R.id.shareOtherArtists);
 
-        ((TextView) arte.findViewById(R.id.shareArtistCount))
-                .setText(String.valueOf(contagens[0]));
+        mostrarOutrosArtistasNaImagem(outrosArtistas, rankingArtistas);
 
-        ((TextView) arte.findViewById(R.id.shareTrackCount))
-                .setText(String.valueOf(contagens[1]));
+
 
         // Melhor dia
         TextView melhorDia = findViewById(R.id.bestDayName);
@@ -939,7 +937,7 @@ public class RecapActivity extends AppCompatActivity {
             linhaMusica.setLayoutParams(linhaParams);
 
             ImageView capa = new ImageView(this);
-            capa.setLayoutParams(new LinearLayout.LayoutParams(dp(48), dp(48)));
+            capa.setLayoutParams(new LinearLayout.LayoutParams(dp(40), dp(40)));
             capa.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
             if (!caminhoCapa.isEmpty()) {
@@ -1149,6 +1147,76 @@ public class RecapActivity extends AppCompatActivity {
                 (int) (Color.green(cor) * fator),
                 (int) (Color.blue(cor) * fator)
         );
+    }
+
+    private void mostrarOutrosArtistasNaImagem(
+            LinearLayout container,
+            String ranking) {
+
+        container.removeAllViews();
+
+        TextView titulo = new TextView(this);
+        titulo.setText("ALSO IN ROTATION");
+        titulo.setTextColor(corDestaque);
+        titulo.setTextSize(11);
+        titulo.setTypeface(null, Typeface.BOLD);
+        titulo.setLetterSpacing(0.08f);
+
+        container.addView(titulo);
+
+        String[] linhas = ranking.split("\n");
+
+        for (int i = 1; i < Math.min(linhas.length, 3); i++) {
+
+            String conteudo = linhas[i].trim();
+
+            if (conteudo.isEmpty()) continue;
+
+            conteudo = conteudo.replaceFirst("^\\d+\\.\\s*", "");
+
+            String artista = conteudo;
+            String tempo = "";
+
+            if (conteudo.contains(" — ")) {
+                String[] partes = conteudo.split(" — ", 2);
+                artista = partes[0].trim();
+                tempo = partes[1].trim();
+            }
+
+            LinearLayout linha = new LinearLayout(this);
+            linha.setOrientation(LinearLayout.HORIZONTAL);
+            linha.setGravity(Gravity.CENTER_VERTICAL);
+            linha.setPadding(0, dp(3), 0, 0);
+
+            TextView posicao = new TextView(this);
+            posicao.setText(String.format("%02d", i + 1));
+            posicao.setTextColor(corDestaque);
+            posicao.setTextSize(15);
+            posicao.setTypeface(null, Typeface.BOLD);
+
+            LinearLayout textos = new LinearLayout(this);
+            textos.setOrientation(LinearLayout.VERTICAL);
+            textos.setPadding(dp(12), 0, 0, 0);
+
+            TextView nome = new TextView(this);
+            nome.setText(artista.toUpperCase());
+            nome.setTextColor(corTexto);
+            nome.setTextSize(11);
+            nome.setTypeface(null, Typeface.BOLD);
+
+            TextView duracao = new TextView(this);
+            duracao.setText(tempo.toUpperCase());
+            duracao.setTextColor(corTexto);
+            duracao.setTextSize(9);
+
+            textos.addView(nome);
+            textos.addView(duracao);
+
+            linha.addView(posicao);
+            linha.addView(textos);
+
+            container.addView(linha);
+        }
     }
 
     }

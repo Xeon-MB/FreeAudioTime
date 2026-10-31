@@ -38,14 +38,14 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="6dp"
         android:background="#B7FF00" />
 
     <TextView
         android:id="@+id/sharePeriod"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:text="YOUR WEEK IN MUSIC"
         android:textColor="#B7FF00"
         android:textSize="13sp"
@@ -99,7 +99,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
         <LinearLayout
@@ -148,73 +148,127 @@
 
         </LinearLayout>
 
+        <!-- DISCOVERY + ÍCONES -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="12dp"
-            android:orientation="vertical"
-            android:padding="10dp"
-            android:background="#111511">
+            android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="DISCOVERY"
-                android:textColor="#B7FF00"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/shareArtistCount"
+            <!-- CAIXA DISCOVERY -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="12"
-                android:textColor="#F0EBDD"
-                android:textSize="37sp"
-                android:textStyle="bold" />
+                android:orientation="vertical"
+                android:padding="10dp"
+                android:background="#111511">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="ARTISTS"
-                android:textColor="#F0EBDD"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DISCOVERY"
+                    android:textColor="#B7FF00"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
-            <View
+                <TextView
+                    android:id="@+id/shareArtistCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="12"
+                    android:textColor="#F0EBDD"
+                    android:textSize="37sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ARTISTS"
+                    android:textColor="#F0EBDD"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="8dp"
+                    android:background="#555B4C" />
+
+            </LinearLayout>
+
+            <!-- ÍCONES ESPALHADOS -->
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="16dp"
-                android:background="#555B4C" />
+                android:layout_height="75dp"
+                android:layout_marginTop="5dp">
 
-            <TextView
-                android:id="@+id/shareTrackCount"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="42"
-                android:textColor="#F0EBDD"
-                android:textSize="37sp"
-                android:textStyle="bold" />
+                <ImageView
+                    android:id="@+id/iconMusic1"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_gravity="top|end"
+                    android:src="@drawable/disco"
+                    android:tint="#E8F0C8"
+                    android:scaleType="fitCenter" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="TRACKS"
-                android:textColor="#F0EBDD"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+                <ImageView
+                    android:id="@+id/iconMusic2"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="center|start"
+                    android:layout_marginStart="8dp"
+                    android:src="@drawable/nota"
+                    android:tint="#E8F0C8"
+                    android:scaleType="fitCenter" />
+
+                <ImageView
+                    android:id="@+id/iconMusic3"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_gravity="bottom|center_horizontal"
+                    android:layout_marginBottom="3dp"
+                    android:src="@drawable/onda"
+                    android:tint="#E8F0C8"
+                    android:scaleType="fitCenter" />
+
+            </FrameLayout>
 
         </LinearLayout>
+
+
     </LinearLayout>
+
+
+
+    <!-- OUTROS ARTISTAS DO TOP 3 -->
+    <LinearLayout
+        android:id="@+id/shareOtherArtists"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="#111511">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ALSO IN ROTATION"
+            android:textColor="#B7FF00"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+    </LinearLayout>
+
 
     <!-- MELHOR DIA -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:padding="12dp"
         android:orientation="vertical"
         android:background="#111511">
@@ -289,7 +343,7 @@
             android:id="@+id/shareTopTracks"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:orientation="vertical" />
 
     </LinearLayout>
@@ -304,7 +358,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:text="A PERSONAL MUSIC ARCHIVE"
         android:textColor="#B7FF00"
         android:textSize="12sp"
