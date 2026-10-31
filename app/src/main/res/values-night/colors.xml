@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fundo e textos -->
+    <color name="app_background">#101D17</color>
+    <color name="text_primary">#E5EDCF</color>
+    <color name="text_secondary">#B7C8B0</color>
+    <color name="text_muted">#91A394</color>
+
+    <!-- Cards -->
+    <color name="card_dark">#244536</color>
+    <color name="card_light">#1E3329</color>
+    <color name="card_yellow">#39351F</color>
+
+    <!-- Textos dos cards -->
+    <color name="text_on_dark">#F4F2DF</color>
+    <color name="accent_soft">#DCE9B0</color>
+    <color name="text_yellow">#D7C77E</color>
+
+    <!-- Detalhes -->
+    <color name="divider_color">#52664E</color>
+    <color name="button_text">#F4F2DF</color>
+</resources>

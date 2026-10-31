@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Fundo e textos -->
+    <color name="app_background">#F4F2DF</color>
+    <color name="text_primary">#193D30</color>
+    <color name="text_secondary">#52664E</color>
+    <color name="text_muted">#718071</color>
+
+    <!-- Cards -->
+    <color name="card_dark">#193D30</color>
+    <color name="card_light">#E5EDCF</color>
+    <color name="card_yellow">#F0E8BD</color>
+
+    <!-- Textos dos cards -->
+    <color name="text_on_dark">#F4F2DF</color>
+    <color name="accent_soft">#DCE9B0</color>
+    <color name="text_yellow">#766B3C</color>
+
+    <!-- Detalhes -->
+    <color name="divider_color">#557365</color>
+    <color name="button_text">#F4F2DF</color>
 </resources>

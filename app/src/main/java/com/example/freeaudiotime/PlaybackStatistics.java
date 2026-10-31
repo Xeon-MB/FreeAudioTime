@@ -8,6 +8,10 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.HashSet;
+import java.util.Set;
 
 
 public class PlaybackStatistics {
@@ -617,5 +621,222 @@ public class PlaybackStatistics {
         }
 
         return result.length() == 0 ? "Nenhuma música" : result.toString();
+    }
+    public static String getYearlyTopArtists(JSONObject history) {
+
+        JSONArray sessions = history.optJSONArray("sessions");
+
+        if (sessions == null) return "Nenhum artista";
+
+        int currentYear = java.util.Calendar.getInstance()
+                .get(java.util.Calendar.YEAR);
+
+        Map<String, Long> artistTimes = new HashMap<>();
+
+        for (int i = 0; i < sessions.length(); i++) {
+
+            JSONObject session = sessions.optJSONObject(i);
+            if (session == null) continue;
+
+            String date = session.optString("date", "");
+            String artist = session.optString("artist", "");
+            long duration = session.optLong("duration", 0);
+
+            if (date.length() < 4 || artist.isEmpty() || duration <= 0) {
+                continue;
+            }
+
+            try {
+                int year = Integer.parseInt(date.substring(0, 4));
+
+                if (year == currentYear) {
+                    artistTimes.put(
+                            artist,
+                            artistTimes.getOrDefault(artist, 0L) + duration
+                    );
+                }
+
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        java.util.List<Map.Entry<String, Long>> ranking =
+                new java.util.ArrayList<>(artistTimes.entrySet());
+
+        ranking.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
+
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
+
+            Map.Entry<String, Long> artist = ranking.get(i);
+
+            result.append(i + 1)
+                    .append(". ")
+                    .append(artist.getKey())
+                    .append(" — ")
+                    .append(artist.getValue())
+                    .append(" segundos\n");
+        }
+
+        return result.length() == 0 ? "Nenhum artista" : result.toString();
+    }
+    public static String getYearlyTopTracks(JSONObject history) {
+
+        JSONArray sessions = history.optJSONArray("sessions");
+
+        if (sessions == null) return "Nenhuma música";
+
+        int currentYear = java.util.Calendar.getInstance()
+                .get(java.util.Calendar.YEAR);
+
+        Map<String, Long> trackTimes = new HashMap<>();
+
+        for (int i = 0; i < sessions.length(); i++) {
+
+            JSONObject session = sessions.optJSONObject(i);
+            if (session == null) continue;
+
+            String date = session.optString("date", "");
+            String title = session.optString("title", "");
+            String artist = session.optString("artist", "");
+            long duration = session.optLong("duration", 0);
+
+            if (date.length() < 4 || title.isEmpty() || duration <= 0) {
+                continue;
+            }
+
+            try {
+                int year = Integer.parseInt(date.substring(0, 4));
+
+                if (year == currentYear) {
+
+                    String key = title + "\n" + artist;
+
+                    trackTimes.put(
+                            key,
+                            trackTimes.getOrDefault(key, 0L) + duration
+                    );
+                }
+
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        java.util.List<Map.Entry<String, Long>> ranking =
+                new java.util.ArrayList<>(trackTimes.entrySet());
+
+        ranking.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
+
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
+
+            Map.Entry<String, Long> track = ranking.get(i);
+
+            String[] info = track.getKey().split("\n", 2);
+
+            result.append(i + 1)
+                    .append(". ")
+                    .append(info[0])
+                    .append(" — ")
+                    .append(info.length > 1 ? info[1] : "Artista desconhecido")
+                    .append(" — ")
+                    .append(track.getValue())
+                    .append(" segundos\n");
+        }
+
+        return result.length() == 0 ? "Nenhuma música" : result.toString();
+    }
+
+    public static String getBestDay(JSONObject history) {
+
+        Map<String, Long> dailyTotals = getDailyTotals(history);
+
+        String bestDay = "Nenhum registro";
+        long highestTime = 0;
+
+        for (Map.Entry<String, Long> entry : dailyTotals.entrySet()) {
+
+            if (entry.getValue() > highestTime) {
+                highestTime = entry.getValue();
+                bestDay = entry.getKey();
+            }
+        }
+
+        return bestDay;
+    }
+
+    public static long getBestDayTime(JSONObject history) {
+
+        Map<String, Long> dailyTotals = getDailyTotals(history);
+
+        long highestTime = 0;
+
+        for (long duration : dailyTotals.values()) {
+
+            if (duration > highestTime) {
+                highestTime = duration;
+            }
+        }
+
+        return highestTime;
+    }
+
+    public static int getLongestStreak(JSONObject history) {
+
+        Map<String, Long> dailyTotals = getDailyTotals(history);
+
+        Set<LocalDate> playbackDays = new HashSet<>();
+
+        for (String date : dailyTotals.keySet()) {
+
+            try {
+                playbackDays.add(LocalDate.parse(date));
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+
+        int longestStreak = 0;
+
+        for (LocalDate day : playbackDays) {
+
+            // Só começa a contar quando não existe reprodução no dia anterior.
+            if (!playbackDays.contains(day.minusDays(1))) {
+
+                int currentStreak = 1;
+                LocalDate nextDay = day.plusDays(1);
+
+                while (playbackDays.contains(nextDay)) {
+                    currentStreak++;
+                    nextDay = nextDay.plusDays(1);
+                }
+
+                if (currentStreak > longestStreak) {
+                    longestStreak = currentStreak;
+                }
+            }
+        }
+
+        return longestStreak;
+    }
+
+    public static long getNextMilestone(long totalTime) {
+
+        long[] milestones = {
+                10 * 3600L,
+                50 * 3600L,
+                100 * 3600L,
+                500 * 3600L
+        };
+
+        for (long milestone : milestones) {
+
+            if (totalTime < milestone) {
+                return milestone;
+            }
+        }
+
+        return 0;
     }
 }
