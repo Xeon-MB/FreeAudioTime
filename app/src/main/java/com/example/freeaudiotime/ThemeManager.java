@@ -1,4 +1,3 @@
-
 package com.example.freeaudiotime;
 
 import android.app.Activity;
@@ -17,7 +16,7 @@ public class ThemeManager {
                 PREFS, Context.MODE_PRIVATE
         );
 
-        boolean darkMode = prefs.getBoolean(DARK_MODE, false);
+        boolean darkMode = prefs.getBoolean(DARK_MODE, true);
 
         AppCompatDelegate.setDefaultNightMode(
                 darkMode
@@ -31,14 +30,15 @@ public class ThemeManager {
                 PREFS, Context.MODE_PRIVATE
         );
 
-        boolean darkMode = prefs.getBoolean(DARK_MODE, false);
+        boolean darkMode = prefs.getBoolean(DARK_MODE, true);
+        boolean newMode = !darkMode;
 
         prefs.edit()
-                .putBoolean(DARK_MODE, !darkMode)
+                .putBoolean(DARK_MODE, newMode)
                 .apply();
 
         AppCompatDelegate.setDefaultNightMode(
-                !darkMode
+                newMode
                         ? AppCompatDelegate.MODE_NIGHT_YES
                         : AppCompatDelegate.MODE_NIGHT_NO
         );
@@ -47,6 +47,6 @@ public class ThemeManager {
     public static boolean isDarkMode(Context context) {
         return context.getSharedPreferences(
                 PREFS, Context.MODE_PRIVATE
-        ).getBoolean(DARK_MODE, false);
+        ).getBoolean(DARK_MODE, true);
     }
 }

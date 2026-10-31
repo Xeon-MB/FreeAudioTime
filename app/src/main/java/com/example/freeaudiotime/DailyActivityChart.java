@@ -7,6 +7,8 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
+import android.graphics.Color;
+
 
 import androidx.core.content.ContextCompat;
 
@@ -28,9 +30,9 @@ public class DailyActivityChart extends View {
     public DailyActivityChart(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        green = ContextCompat.getColor(context, R.color.card_dark);
+        green = ContextCompat.getColor(context, R.color.progress_tint);
         lightGreen = ContextCompat.getColor(context, R.color.divider_color);
-        muted = ContextCompat.getColor(context, R.color.text_secondary);
+        muted = ContextCompat.getColor(context, R.color.text_muted);
         textColor = ContextCompat.getColor(context, R.color.text_primary);
     }
 
@@ -91,6 +93,8 @@ public class DailyActivityChart extends View {
             float barHeight = (seconds / (float) maxValue)
                     * chartHeight * 0.85f;
 
+            boolean isBestDay = seconds == maxValue && seconds > 0;
+
             if (seconds > 0) {
                 barHeight = Math.max(barHeight, dp(4));
             }
@@ -98,7 +102,11 @@ public class DailyActivityChart extends View {
             float barTop = bottom - barHeight;
 
             // Barra
-            paint.setColor(seconds > 0 ? green : lightGreen);
+            paint.setColor(seconds > 0
+                    ? (isBestDay
+                       ? ContextCompat.getColor(getContext(), R.color.text_yellow)
+                       : green)
+                    : lightGreen);
 
             RectF bar = new RectF(
                     centerX - barWidth / 2,

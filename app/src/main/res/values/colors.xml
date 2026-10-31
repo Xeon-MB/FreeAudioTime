@@ -1,22 +1,31 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Fundo e textos -->
-    <color name="app_background">#F4F2DF</color>
-    <color name="text_primary">#193D30</color>
-    <color name="text_secondary">#52664E</color>
-    <color name="text_muted">#718071</color>
+    <color name="app_background">#F3F1E7</color>
+    <color name="text_primary">#20372B</color>
+    <color name="text_secondary">#56685A</color>
+    <color name="text_muted">#778477</color>
 
     <!-- Cards -->
-    <color name="card_dark">#193D30</color>
-    <color name="card_light">#E5EDCF</color>
-    <color name="card_yellow">#F0E8BD</color>
+    <color name="card_dark">#20372B</color>
+    <color name="card_light">#E7EBDD</color>
+    <color name="card_yellow">#EDE8D2</color>
 
     <!-- Textos dos cards -->
-    <color name="text_on_dark">#F4F2DF</color>
-    <color name="accent_soft">#DCE9B0</color>
-    <color name="text_yellow">#766B3C</color>
+    <color name="text_on_dark">#F3F1E7</color>
+    <color name="accent_soft">#CFE6A0</color>
+    <color name="text_yellow">#47652F</color>
 
     <!-- Detalhes -->
-    <color name="divider_color">#557365</color>
-    <color name="button_text">#F4F2DF</color>
+    <color name="divider_color">#D1D8C8</color>
+    <color name="button_text">#F3F1E7</color>
+
+    <!-- Componentes adaptáveis -->
+    <color name="button_primary">#527A18</color>
+    <color name="button_primary_text">#FFFFFF</color>
+    <color name="button_secondary">#20372B</color>
+    <color name="button_secondary_text">#F3F1E7</color>
+    <color name="theme_toggle_background">#E7EBDD</color>
+    <color name="theme_toggle_text">#20372B</color>
+    <color name="progress_tint">#527A18</color>
+    <color name="progress_background">#D1D8C8</color>
 </resources>

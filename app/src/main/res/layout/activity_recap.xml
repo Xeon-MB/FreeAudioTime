@@ -426,7 +426,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="02 — TOP MÚSICAS"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/accent_soft"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 

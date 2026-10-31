@@ -39,9 +39,9 @@
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_marginTop="14dp"
-            android:backgroundTint="@color/card_light"
+            android:backgroundTint="@color/theme_toggle_background"
             android:text="🌙 Alternar tema"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/theme_toggle_text"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -193,8 +193,8 @@
                     android:layout_marginTop="12dp"
                     android:max="1000"
                     android:progress="0"
-                    android:progressTint="@color/accent_soft"
-                    android:progressBackgroundTint="@color/divider_color" />
+                    android:progressTint="@color/progress_tint"
+                    android:progressBackgroundTint="@color/progress_background" />
 
                 <!-- Tempos da música -->
                 <LinearLayout
@@ -263,7 +263,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="ESTA SEMANA"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="@color/text_yellow"
                     android:textSize="10sp"
                     android:textStyle="bold" />
 
@@ -324,7 +324,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="ESTE ANO"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/text_yellow"
                 android:textSize="10sp"
                 android:textStyle="bold" />
 
@@ -347,9 +347,9 @@
             android:layout_width="match_parent"
             android:layout_height="58dp"
             android:layout_marginTop="18dp"
-            android:backgroundTint="@color/card_dark"
+            android:backgroundTint="@color/button_primary"
             android:text="VER MEU RECAP  →"
-            android:textColor="@color/text_on_dark"
+            android:textColor="@color/button_primary_text"
             android:textSize="13sp"
             android:textStyle="bold" />
 
@@ -358,9 +358,9 @@
             android:layout_width="match_parent"
             android:layout_height="58dp"
             android:layout_marginTop="10dp"
-            android:backgroundTint="@color/card_light"
+            android:backgroundTint="@color/button_secondary"
             android:text="VER MEUS RECORDES  →"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/button_secondary_text"
             android:textSize="13sp"
             android:textStyle="bold" />
 
@@ -415,7 +415,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="TOP 5 MÚSICAS"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/text_yellow"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
