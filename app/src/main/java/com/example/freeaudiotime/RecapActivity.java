@@ -54,6 +54,8 @@ public class RecapActivity extends AppCompatActivity {
     private TextView topTracksView;
     private TextView periodView;
 
+    private android.widget.ImageView weeklyArtistImage;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         ThemeManager.applySavedTheme(this);
@@ -74,6 +76,7 @@ public class RecapActivity extends AppCompatActivity {
 
         totalView = findViewById(R.id.weeklyTotal);
         artistView = findViewById(R.id.weeklyArtist);
+        weeklyArtistImage = findViewById(R.id.weeklyArtistImage);
         trackView = findViewById(R.id.weeklyTrack);
         topArtistsView = findViewById(R.id.weeklyTopArtists);
         topTracksView = findViewById(R.id.weeklyTopTracks);
@@ -124,6 +127,35 @@ public class RecapActivity extends AppCompatActivity {
         topTracksView.setText(tracks);
 
         artistView.setText(primeiroItem(artists));
+        String artista = primeiroItem(artists);
+
+        if (!artista.equals("Nenhum registro")) {
+            artista = artista.replaceFirst("^\\d+\\.\\s*", "");
+
+            int separador = artista.indexOf(" — ");
+
+            if (separador != -1) {
+                artista = artista.substring(0, separador).trim();
+            }
+        }
+        android.util.Log.d("RecapDebug", "Artista recebido: " + artista);
+
+        if (!artista.equals("Nenhum registro")) {
+            android.util.Log.d("RecapDebug", "Chamando DeezerService...");
+            DeezerService.buscarFotoArtista(artista, imagem -> {
+                if (imagem != null) {
+                    weeklyArtistImage.setImageBitmap(imagem);
+                } else {
+                    weeklyArtistImage.setImageResource(
+                            R.drawable.ic_launcher_foreground
+                    );
+                }
+            });
+        } else {
+            weeklyArtistImage.setImageResource(
+                    R.drawable.ic_launcher_foreground
+            );
+        }
         trackView.setText(primeiroItem(tracks));
 
         atualizarPeriodo(periodo);
