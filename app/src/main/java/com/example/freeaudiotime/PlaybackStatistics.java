@@ -267,8 +267,8 @@ public class PlaybackStatistics {
                     .append(". ")
                     .append(artist.getKey())
                     .append(" — ")
-                    .append(artist.getValue())
-                    .append(" segundos\n");
+                    .append(formatarMinutos(artist.getValue()))
+                    .append("\n");
         }
 
         return result.toString();
@@ -326,8 +326,8 @@ public class PlaybackStatistics {
                     .append(" — ")
                     .append(info.length > 1 ? info[1] : "Artista desconhecido")
                     .append(" — ")
-                    .append(track.getValue())
-                    .append(" segundos\n");
+                    .append(formatarMinutos(track.getValue()))
+                    .append("\n");
         }
 
         return result.toString();
@@ -402,8 +402,8 @@ public class PlaybackStatistics {
                     .append(". ")
                     .append(artist.getKey())
                     .append(" — ")
-                    .append(artist.getValue())
-                    .append(" segundos\n");
+                    .append(formatarMinutos(artist.getValue()))
+                    .append("\n");
         }
 
         return result.length() == 0 ? "Nenhum artista" : result.toString();
@@ -485,8 +485,8 @@ public class PlaybackStatistics {
                     .append(" — ")
                     .append(info.length > 1 ? info[1] : "Artista desconhecido")
                     .append(" — ")
-                    .append(track.getValue())
-                    .append(" segundos\n");
+                    .append(formatarMinutos(track.getValue()))
+                    .append("\n");
         }
 
         return result.length() == 0 ? "Nenhuma música" : result.toString();
@@ -546,8 +546,8 @@ public class PlaybackStatistics {
                     .append(". ")
                     .append(artist.getKey())
                     .append(" — ")
-                    .append(artist.getValue())
-                    .append(" segundos\n");
+                    .append(formatarMinutos(artist.getValue()))
+                    .append("\n");
         }
 
         return result.length() == 0 ? "Nenhum artista" : result.toString();
@@ -616,8 +616,8 @@ public class PlaybackStatistics {
                     .append(" — ")
                     .append(info.length > 1 ? info[1] : "Artista desconhecido")
                     .append(" — ")
-                    .append(track.getValue())
-                    .append(" segundos\n");
+                    .append(formatarMinutos(track.getValue()))
+                    .append("\n");
         }
 
         return result.length() == 0 ? "Nenhuma música" : result.toString();
@@ -675,8 +675,8 @@ public class PlaybackStatistics {
                     .append(". ")
                     .append(artist.getKey())
                     .append(" — ")
-                    .append(artist.getValue())
-                    .append(" segundos\n");
+                    .append(formatarMinutos(artist.getValue()))
+                    .append("\n");
         }
 
         return result.length() == 0 ? "Nenhum artista" : result.toString();
@@ -742,8 +742,8 @@ public class PlaybackStatistics {
                     .append(" — ")
                     .append(info.length > 1 ? info[1] : "Artista desconhecido")
                     .append(" — ")
-                    .append(track.getValue())
-                    .append(" segundos\n");
+                    .append(formatarMinutos(track.getValue()))
+                    .append("\n");
         }
 
         return result.length() == 0 ? "Nenhuma música" : result.toString();
@@ -838,5 +838,15 @@ public class PlaybackStatistics {
         }
 
         return 0;
+    }
+    private static String formatarMinutos(long segundos) {
+
+        long minutos = segundos / 60;
+
+        if (minutos == 0) {
+            return "<1 min";
+        }
+
+        return minutos + " min";
     }
 }

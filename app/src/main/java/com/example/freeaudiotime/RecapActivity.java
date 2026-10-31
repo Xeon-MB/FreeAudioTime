@@ -7,6 +7,20 @@ import android.widget.Button;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import androidx.core.content.ContextCompat;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.provider.MediaStore;
+import android.content.ContentValues;
+import android.net.Uri;
+import android.os.Environment;
+import android.widget.Toast;
+import android.widget.ScrollView;
+import java.io.OutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -45,6 +59,9 @@ public class RecapActivity extends AppCompatActivity {
         ThemeManager.applySavedTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_recap);
+        Button exportButton = findViewById(R.id.exportRecapButton);
+
+        exportButton.setOnClickListener(v -> salvarRecapComoImagem());
 
         history = PlaybackStorage.load(this);
 
@@ -375,5 +392,114 @@ public class RecapActivity extends AppCompatActivity {
         return total;
     }
 
+    private Bitmap criarImagemRecap() {
 
-}
+        View arte = LayoutInflater.from(this)
+                .inflate(R.layout.recap_share, null, false);
+
+        // Copia os dados do período atualmente selecionado.
+        ((TextView) arte.findViewById(R.id.sharePeriod))
+                .setText(periodView.getText());
+
+        ((TextView) arte.findViewById(R.id.shareTotal))
+                .setText(totalView.getText());
+
+        ((TextView) arte.findViewById(R.id.shareArtist))
+                .setText(artistView.getText());
+
+        ((TextView) arte.findViewById(R.id.shareTrack))
+                .setText(trackView.getText());
+
+        ((TextView) arte.findViewById(R.id.shareTopArtists))
+                .setText(topArtistsView.getText());
+
+        ((TextView) arte.findViewById(R.id.shareTopTracks))
+                .setText(topTracksView.getText());
+
+        int largura = (int) (360 * getResources()
+                .getDisplayMetrics().density);
+
+        int larguraSpec = View.MeasureSpec.makeMeasureSpec(
+                largura, View.MeasureSpec.EXACTLY);
+
+        int alturaSpec = View.MeasureSpec.makeMeasureSpec(
+                0, View.MeasureSpec.UNSPECIFIED);
+
+        arte.measure(larguraSpec, alturaSpec);
+
+        arte.layout(0, 0, arte.getMeasuredWidth(),
+                arte.getMeasuredHeight());
+
+        Bitmap bitmap = Bitmap.createBitmap(
+                arte.getMeasuredWidth(),
+                arte.getMeasuredHeight(),
+                Bitmap.Config.ARGB_8888);
+
+        Canvas canvas = new Canvas(bitmap);
+        arte.draw(canvas);
+
+        return bitmap;
+    }
+
+    private void salvarRecapComoImagem() {
+
+        if (android.os.Build.VERSION.SDK_INT < 29) {
+            Toast.makeText(this,
+                    "A exportação precisa do Android 10 ou superior.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Bitmap bitmap = criarImagemRecap();
+
+        String nomeArquivo = "FreeAudioTime_Recap_"
+                + System.currentTimeMillis() + ".png";
+
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, nomeArquivo);
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+        values.put(MediaStore.Images.Media.RELATIVE_PATH,
+                Environment.DIRECTORY_PICTURES + "/FreeAudioTime");
+
+        Uri uri = null;
+
+        try {
+            uri = getContentResolver().insert(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    values);
+
+            if (uri == null) {
+                throw new IOException("Não foi possível criar o arquivo.");
+            }
+
+            try (OutputStream outputStream =
+                         getContentResolver().openOutputStream(uri)) {
+
+                if (outputStream == null ||
+                        !bitmap.compress(Bitmap.CompressFormat.PNG,
+                                100, outputStream)) {
+                    throw new IOException("Falha ao gerar a imagem.");
+                }
+            }
+
+            Toast.makeText(this,
+                    "Recap salvo na galeria!",
+                    Toast.LENGTH_LONG).show();
+
+        } catch (IOException | RuntimeException e) {
+
+            if (uri != null) {
+                getContentResolver().delete(uri, null, null);
+            }
+
+            Toast.makeText(this,
+                    "Erro ao salvar o recap.",
+                    Toast.LENGTH_LONG).show();
+
+        } finally {
+            bitmap.recycle();
+        }
+    }
+
+    }
+
