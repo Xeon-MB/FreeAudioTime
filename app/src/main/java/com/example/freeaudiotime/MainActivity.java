@@ -55,6 +55,28 @@ public class MainActivity extends AppCompatActivity {
 
         android.util.Log.d("AudioTime",
                 "TOP 5 MÚSICAS:\n" + topTracks);
+        String weeklyTopArtists =
+                PlaybackStatistics.getWeeklyTopArtists(history);
+
+        android.util.Log.d("AudioTime",
+                "TOP 5 ARTISTAS DA SEMANA:\n" + weeklyTopArtists);
+        String weeklyTopTracks =
+                PlaybackStatistics.getWeeklyTopTracks(history);
+
+        android.util.Log.d("AudioTime",
+                "TOP 5 MÚSICAS DA SEMANA:\n" + weeklyTopTracks);
+        String monthlyTopArtists =
+                PlaybackStatistics.getMonthlyTopArtists(history);
+
+        android.util.Log.d("AudioTime",
+                "TOP 5 ARTISTAS DO MÊS:\n" + monthlyTopArtists);
+
+
+        String monthlyTopTracks =
+                PlaybackStatistics.getMonthlyTopTracks(history);
+
+        android.util.Log.d("AudioTime",
+                "TOP 5 MÚSICAS DO MÊS:\n" + monthlyTopTracks);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
