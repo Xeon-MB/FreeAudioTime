@@ -348,13 +348,13 @@
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
-            <ImageView
+            <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/weeklyArtistImage"
                 android:layout_width="110dp"
                 android:layout_height="110dp"
                 android:layout_marginTop="12dp"
                 android:scaleType="centerCrop"
-                android:contentDescription="Foto do artista mais ouvido"
+                android:contentDescription="foto do artista mais ouvido"
                 android:src="@drawable/ic_launcher_foreground" />
 
             <View
@@ -430,15 +430,14 @@
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
-            <TextView
+            <LinearLayout
                 android:id="@+id/weeklyTopTracks"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="15dp"
-                android:text="Nenhuma música registrada"
-                android:textColor="@color/text_primary"
-                android:textSize="14sp"
-                android:lineSpacingExtra="10dp" />
+                android:orientation="vertical">
+
+            </LinearLayout>
 
         </LinearLayout>
 

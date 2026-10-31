@@ -2,6 +2,8 @@
 package com.example.freeaudiotime;
 
 import android.os.Bundle;
+import android.util.Log;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Button;
 import android.content.res.ColorStateList;
@@ -14,17 +16,22 @@ import android.content.ContentValues;
 import android.net.Uri;
 import android.os.Environment;
 import android.widget.Toast;
-import android.widget.ScrollView;
 import java.io.OutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.view.View;
+import android.graphics.BitmapFactory;
+import android.view.Gravity;
+import android.widget.ImageView;
+import android.text.TextUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.File;
+
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import org.json.JSONObject;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -32,7 +39,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
 import java.time.format.TextStyle;
-import android.view.View;
 
 
 public class RecapActivity extends AppCompatActivity {
@@ -51,8 +57,10 @@ public class RecapActivity extends AppCompatActivity {
     private TextView artistView;
     private TextView trackView;
     private TextView topArtistsView;
-    private TextView topTracksView;
+    private LinearLayout topTracksView;
     private TextView periodView;
+
+    private String rankingTracksAtual = "Nenhuma música";
 
     private android.widget.ImageView weeklyArtistImage;
 
@@ -121,10 +129,12 @@ public class RecapActivity extends AppCompatActivity {
             tracks = PlaybackStatistics.getYearlyTopTracks(history);
         }
 
+        rankingTracksAtual = tracks;
+
         totalView.setText(formatarTempo(total));
 
         topArtistsView.setText(artists);
-        topTracksView.setText(tracks);
+        mostrarRankingMusicas(tracks, history);
 
         artistView.setText(primeiroItem(artists));
         String artista = primeiroItem(artists);
@@ -445,8 +455,8 @@ public class RecapActivity extends AppCompatActivity {
         ((TextView) arte.findViewById(R.id.shareTopArtists))
                 .setText(topArtistsView.getText());
 
-        ((TextView) arte.findViewById(R.id.shareTopTracks))
-                .setText(topTracksView.getText());
+        LinearLayout shareTopTracks = arte.findViewById(R.id.shareTopTracks);
+        mostrarRankingNaImagem(shareTopTracks);
 
         int largura = (int) (360 * getResources()
                 .getDisplayMetrics().density);
@@ -531,6 +541,347 @@ public class RecapActivity extends AppCompatActivity {
         } finally {
             bitmap.recycle();
         }
+    }
+
+
+    private void mostrarRankingMusicas(String ranking, JSONObject history) {
+
+        Log.e("AudioTime", "mostrarRankingMusicas foi chamado!");
+
+        topTracksView.removeAllViews();
+
+        if (ranking == null || ranking.equals("Nenhuma música")) {
+            TextView vazio = new TextView(this);
+            vazio.setText("Nenhuma música registrada");
+            vazio.setTextSize(14);
+            topTracksView.addView(vazio);
+            return;
+        }
+
+        String[] linhas = ranking.split("\n");
+
+        JSONArray musicas = history.optJSONArray("tracks");
+        JSONArray sessoes = history.optJSONArray("sessions");
+
+        for (String linha : linhas) {
+
+            if (linha.trim().isEmpty()) continue;
+
+            String[] partes = linha.split(" — ", 3);
+
+            if (partes.length < 3) continue;
+
+            String titulo = partes[0].replaceFirst("^\\d+\\.\\s*", "").trim();
+            String artista = partes[1].trim();
+            String duracao = partes[2].trim();
+
+            // Procura a capa correspondente no histórico.
+            String caminhoCapa = "";
+
+            if (musicas != null) {
+                for (int i = 0; i < musicas.length(); i++) {
+
+                    JSONObject musica = musicas.optJSONObject(i);
+
+                    if (musica == null) continue;
+
+                    if (titulo.equals(musica.optString("title"))
+                            && artista.equals(musica.optString("artist"))) {
+
+                        caminhoCapa = musica.optString("artwork", "");
+                        break;
+                    }
+                }
+            }
+
+            Log.e("AudioTime", "Música: " + titulo
+                    + " | Artista: " + artista
+                    + " | Capa: " + caminhoCapa);
+
+            // Cria a linha visual.
+            // Se não encontrou a capa em tracks, procura nas sessões.
+            if (caminhoCapa.isEmpty() && sessoes != null) {
+                for (int i = 0; i < sessoes.length(); i++) {
+
+                    JSONObject sessao = sessoes.optJSONObject(i);
+
+                    if (sessao == null) continue;
+
+                    if (titulo.equals(sessao.optString("title"))
+                            && artista.equals(sessao.optString("artist"))) {
+
+                        caminhoCapa = sessao.optString("artwork", "");
+
+                        if (!caminhoCapa.isEmpty()) break;
+                    }
+                }
+            }
+            LinearLayout linhaMusica = new LinearLayout(this);
+            linhaMusica.setOrientation(LinearLayout.HORIZONTAL);
+            linhaMusica.setGravity(Gravity.CENTER_VERTICAL);
+
+            LinearLayout.LayoutParams linhaParams =
+                    new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                    );
+
+            linhaParams.bottomMargin = (int) (14 * getResources()
+                    .getDisplayMetrics().density);
+
+            linhaMusica.setLayoutParams(linhaParams);
+
+            // Capa do álbum.
+            // Capa do álbum.
+            ImageView capa = new ImageView(this);
+
+            int tamanho = (int) (64 * getResources()
+                    .getDisplayMetrics().density);
+
+            LinearLayout.LayoutParams capaParams =
+                    new LinearLayout.LayoutParams(tamanho, tamanho);
+
+            capaParams.rightMargin = (int) (12 * getResources()
+                    .getDisplayMetrics().density);
+
+            capa.setLayoutParams(capaParams);
+            capa.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+// Imagem provisória.
+            capa.setImageResource(R.drawable.ic_launcher_foreground);
+
+// Verifica se já existe uma capa salva.
+            File arquivoCapa = caminhoCapa.isEmpty()
+                    ? null
+                    : new File(getFilesDir(), caminhoCapa);
+
+            if (arquivoCapa != null && arquivoCapa.exists()) {
+
+                Bitmap bitmap = BitmapFactory.decodeFile(
+                        arquivoCapa.getAbsolutePath()
+                );
+
+                if (bitmap != null) {
+                    capa.setImageBitmap(bitmap);
+                }
+
+            } else {
+
+                // Busca automaticamente a capa que está faltando.
+                DeezerService.buscarCapaMusica(
+                        this,
+                        titulo,
+                        artista,
+                        (bitmap, artworkPath) -> {
+
+                            if (bitmap != null) {
+                                capa.setImageBitmap(bitmap);
+
+                                salvarCapaNoHistorico(titulo, artista, artworkPath);
+
+                                Log.d("AudioTime",
+                                        "Capa carregada e registrada: " + titulo);
+                            } else {
+                                Log.d("AudioTime",
+                                        "Nenhuma capa encontrada: " + titulo);
+                            }
+                        }
+                );
+            }
+
+            linhaMusica.addView(capa);
+
+            // Informações da música.
+            LinearLayout informacoes = new LinearLayout(this);
+            informacoes.setOrientation(LinearLayout.VERTICAL);
+
+            informacoes.setLayoutParams(
+                    new LinearLayout.LayoutParams(
+                            0,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            1
+                    )
+            );
+
+            TextView nome = new TextView(this);
+            nome.setText(titulo);
+            nome.setTextColor(getColor(R.color.text_primary));
+            nome.setTextSize(14);
+            nome.setTypeface(null, android.graphics.Typeface.BOLD);
+
+            TextView nomeArtista = new TextView(this);
+            nomeArtista.setText(artista);
+            nomeArtista.setTextColor(getColor(R.color.text_secondary));
+            nomeArtista.setTextSize(12);
+
+            TextView tempo = new TextView(this);
+            tempo.setText(duracao);
+            tempo.setTextColor(getColor(R.color.text_secondary));
+            tempo.setTextSize(12);
+
+            informacoes.addView(nome);
+            informacoes.addView(nomeArtista);
+            informacoes.addView(tempo);
+
+            linhaMusica.addView(informacoes);
+            topTracksView.addView(linhaMusica);
+        }
+    }
+
+    private void salvarCapaNoHistorico(
+            String titulo,
+            String artista,
+            String artworkPath
+    ) {
+        if (artworkPath == null || artworkPath.isEmpty()) return;
+
+        try {
+            JSONArray musicas = history.optJSONArray("tracks");
+
+            if (musicas == null) {
+                musicas = new JSONArray();
+                history.put("tracks", musicas);
+            }
+
+            boolean encontrada = false;
+
+            for (int i = 0; i < musicas.length(); i++) {
+                JSONObject musica = musicas.optJSONObject(i);
+
+                if (musica == null) continue;
+
+                if (titulo.equals(musica.optString("title"))
+                        && artista.equals(musica.optString("artist"))) {
+
+                    musica.put("artwork", artworkPath);
+                    encontrada = true;
+                    break;
+                }
+            }
+
+            if (!encontrada) {
+                JSONObject novaMusica = new JSONObject();
+                novaMusica.put("title", titulo);
+                novaMusica.put("artist", artista);
+                novaMusica.put("duration", 0);
+                novaMusica.put("artwork", artworkPath);
+                musicas.put(novaMusica);
+            }
+
+            JSONArray sessoes = history.optJSONArray("sessions");
+
+            if (sessoes != null) {
+                for (int i = 0; i < sessoes.length(); i++) {
+                    JSONObject sessao = sessoes.optJSONObject(i);
+
+                    if (sessao == null) continue;
+
+                    if (titulo.equals(sessao.optString("title"))
+                            && artista.equals(sessao.optString("artist"))) {
+
+                        sessao.put("artwork", artworkPath);
+                    }
+                }
+            }
+
+            PlaybackStorage.save(this, history);
+
+            Log.d("AudioTime",
+                    "Caminho da capa salvo no histórico: " + titulo);
+
+        } catch (Exception e) {
+            Log.e("AudioTime",
+                    "Erro ao registrar capa no histórico", e);
+        }
+    }
+
+    private void mostrarRankingNaImagem(LinearLayout container) {
+        container.removeAllViews();
+
+        String[] linhas = rankingTracksAtual.split("\n");
+
+        for (String linha : linhas) {
+            if (linha.trim().isEmpty()) continue;
+
+            String[] partes = linha.split(" — ", 3);
+            if (partes.length < 2) continue;
+
+            String titulo = partes[0].replaceFirst("^\\d+\\.\\s*", "").trim();
+            String artista = partes[1].trim();
+
+            String caminhoCapa = "";
+
+            JSONArray musicas = history.optJSONArray("tracks");
+
+            if (musicas != null) {
+                for (int i = 0; i < musicas.length(); i++) {
+                    JSONObject musica = musicas.optJSONObject(i);
+
+                    if (musica == null) continue;
+
+                    if (titulo.equals(musica.optString("title"))
+                            && artista.equals(musica.optString("artist"))) {
+                        caminhoCapa = musica.optString("artwork");
+                        break;
+                    }
+                }
+            }
+
+            LinearLayout linhaMusica = new LinearLayout(this);
+            linhaMusica.setOrientation(LinearLayout.HORIZONTAL);
+            linhaMusica.setGravity(Gravity.CENTER_VERTICAL);
+
+            LinearLayout.LayoutParams linhaParams =
+                    new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    );
+
+            linhaParams.bottomMargin = dp(10);
+            linhaMusica.setLayoutParams(linhaParams);
+
+            ImageView capa = new ImageView(this);
+            capa.setLayoutParams(new LinearLayout.LayoutParams(dp(48), dp(48)));
+            capa.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+            if (!caminhoCapa.isEmpty()) {
+                File arquivo = new File(getFilesDir(), caminhoCapa);
+
+                if (arquivo.exists()) {
+                    Bitmap bitmap = BitmapFactory.decodeFile(arquivo.getAbsolutePath());
+
+                    if (bitmap != null) {
+                        capa.setImageBitmap(bitmap);
+                    }
+                }
+            }
+
+            linhaMusica.addView(capa);
+
+            TextView informacoes = new TextView(this);
+            informacoes.setText(titulo + "\n" + artista);
+            informacoes.setTextColor(Color.WHITE);
+            informacoes.setTextSize(12);
+            informacoes.setMaxLines(2);
+            informacoes.setEllipsize(TextUtils.TruncateAt.END);
+
+            LinearLayout.LayoutParams textoParams =
+                    new LinearLayout.LayoutParams(
+                            0,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            1
+                    );
+
+            textoParams.leftMargin = dp(12);
+            informacoes.setLayoutParams(textoParams);
+
+            linhaMusica.addView(informacoes);
+            container.addView(linhaMusica);
+        }
+    }
+
+    private int dp(float valor) {
+        return (int) (valor * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     }

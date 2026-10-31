@@ -13,6 +13,9 @@ import android.graphics.Bitmap;
 import java.io.File;
 import java.io.FileOutputStream;
 import android.content.Intent;
+import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -298,11 +301,22 @@ public class MediaNotificationListener extends NotificationListenerService {
 
             for (String title : trackTimes.keySet()) {
 
+                String artist = trackArtists.get(title);
+
                 org.json.JSONObject track = new org.json.JSONObject();
 
                 track.put("title", title);
-                track.put("artist", trackArtists.get(title));
+                track.put("artist", artist);
                 track.put("duration", trackTimes.get(title) / 1000);
+
+                File artworkFile = getAlbumArtFile(title, artist);
+
+                if (artworkFile.exists()) {
+                    track.put(
+                            "artwork",
+                            "album_art_cache/" + artworkFile.getName()
+                    );
+                }
 
                 tracks.put(track);
             }
@@ -480,25 +494,47 @@ public class MediaNotificationListener extends NotificationListenerService {
             );
         }
 
-        getSharedPreferences("current_track", MODE_PRIVATE)
-                .edit()
-                .putString("title", title)
-                .putString("artist", artist)
-                .apply();
-
-        File imageFile = new File(
-                getFilesDir(),
-                "current_album_art.png"
-        );
+        File albumArtFile = getAlbumArtFile(title, artist);
 
         try {
+            // Salva a capa permanente, caso tenha recebido uma imagem.
             if (artwork != null) {
-                try (FileOutputStream output = new FileOutputStream(imageFile)) {
+                try (FileOutputStream output = new FileOutputStream(albumArtFile)) {
                     artwork.compress(Bitmap.CompressFormat.PNG, 100, output);
                 }
-            } else {
-                imageFile.delete();
             }
+
+            // Atualiza a imagem atual usada pelo restante do aplicativo.
+            File currentImage = new File(getFilesDir(), "current_album_art.png");
+
+            if (albumArtFile.exists()) {
+                try (
+                        FileInputStream input = new FileInputStream(albumArtFile);
+                        FileOutputStream output = new FileOutputStream(currentImage)
+                ) {
+                    byte[] buffer = new byte[8192];
+                    int length;
+
+                    while ((length = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, length);
+                    }
+                }
+            } else {
+                currentImage.delete();
+            }
+
+            getSharedPreferences("current_track", MODE_PRIVATE)
+                    .edit()
+                    .putString("title", title)
+                    .putString("artist", artist)
+                    .putString(
+                            "artwork",
+                            albumArtFile.exists()
+                                    ? "album_art_cache/" + albumArtFile.getName()
+                                    : ""
+                    )
+                    .apply();
+
         } catch (Exception e) {
             Log.e(TAG, "Erro ao salvar capa da música", e);
         }
@@ -509,6 +545,21 @@ public class MediaNotificationListener extends NotificationListenerService {
 
         intent.setPackage(getPackageName());
         sendBroadcast(intent);
+    }
+
+    private File getAlbumArtFile(String title, String artist) {
+
+        File cacheDir = new File(getFilesDir(), "album_art_cache");
+
+        if (!cacheDir.exists()) {
+            cacheDir.mkdirs();
+        }
+
+        String id = UUID.nameUUIDFromBytes(
+                (title + "|" + artist).getBytes(StandardCharsets.UTF_8)
+        ).toString();
+
+        return new File(cacheDir, id + ".png");
     }
 }
 
