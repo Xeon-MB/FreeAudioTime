@@ -142,7 +142,7 @@ public class RecapActivity extends AppCompatActivity {
 
         if (!artista.equals("Nenhum registro")) {
             android.util.Log.d("RecapDebug", "Chamando DeezerService...");
-            DeezerService.buscarFotoArtista(artista, imagem -> {
+            DeezerService.buscarFotoArtista(this, artista, imagem -> {
                 if (imagem != null) {
                     weeklyArtistImage.setImageBitmap(imagem);
                 } else {
