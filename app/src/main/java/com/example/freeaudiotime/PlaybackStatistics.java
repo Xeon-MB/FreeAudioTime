@@ -1017,4 +1017,127 @@ public class PlaybackStatistics {
 
         return minutos + " min";
     }
+
+    public static long getDailyTotal(JSONObject history, String selectedDate) {
+
+        Map<String, Long> dailyTotals = getDailyTotals(history);
+
+        return dailyTotals.getOrDefault(selectedDate, 0L);
+    }
+
+    public static String getDailyTopArtists(JSONObject history, String selectedDate) {
+
+        JSONArray sessions = getUniqueSessions(history);
+
+        if (sessions == null) {
+            return "Nenhum artista";
+        }
+
+        Map<String, Long> artistTimes = new HashMap<>();
+
+        for (int i = 0; i < sessions.length(); i++) {
+
+            JSONObject session = sessions.optJSONObject(i);
+
+            if (session == null) continue;
+
+            String date = session.optString("date", "");
+            String artist = session.optString("artist", "");
+            long duration = session.optLong("duration", 0);
+
+            if (date.length() < 10 || artist.isEmpty() || duration <= 0) {
+                continue;
+            }
+
+            if (date.substring(0, 10).equals(selectedDate)) {
+                artistTimes.put(
+                        artist,
+                        artistTimes.getOrDefault(artist, 0L) + duration
+                );
+            }
+        }
+
+        java.util.List<Map.Entry<String, Long>> ranking =
+                new java.util.ArrayList<>(artistTimes.entrySet());
+
+        ranking.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
+
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
+            Map.Entry<String, Long> artist = ranking.get(i);
+
+            result.append(i + 1)
+                    .append(". ")
+                    .append(artist.getKey())
+                    .append(" — ")
+                    .append(formatarMinutos(artist.getValue()))
+                    .append("\n");
+        }
+
+        return result.length() == 0 ? "Nenhum artista" : result.toString();
+    }
+
+    public static String getDailyTopTracks(JSONObject history, String selectedDate) {
+
+        JSONArray sessions = history.optJSONArray("sessions");
+
+        if (sessions == null) {
+            return "Nenhuma música";
+        }
+
+        Map<String, java.util.Set<String>> trackPlays = new HashMap<>();
+
+        for (int i = 0; i < sessions.length(); i++) {
+
+            JSONObject session = sessions.optJSONObject(i);
+
+            if (session == null) continue;
+
+            String date = session.optString("date", "");
+            String title = session.optString("title", "");
+            String artist = session.optString("artist", "");
+            String playbackId = session.optString("playbackId", "");
+
+            if (date.length() < 10 || title.isEmpty() || playbackId.isEmpty()) {
+                continue;
+            }
+
+            if (date.substring(0, 10).equals(selectedDate)) {
+
+                String key = title + "\n" + artist;
+
+                trackPlays.putIfAbsent(key, new HashSet<>());
+                trackPlays.get(key).add(playbackId);
+            }
+        }
+
+        java.util.List<Map.Entry<String, java.util.Set<String>>> ranking =
+                new java.util.ArrayList<>(trackPlays.entrySet());
+
+        ranking.sort((a, b) ->
+                Integer.compare(b.getValue().size(), a.getValue().size()));
+
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
+
+            Map.Entry<String, java.util.Set<String>> track = ranking.get(i);
+
+            String[] info = track.getKey().split("\n", 2);
+            int plays = track.getValue().size();
+
+            result.append(i + 1)
+                    .append(". ")
+                    .append(info[0])
+                    .append(" — ")
+                    .append(info.length > 1 ? info[1] : "Artista desconhecido")
+                    .append(" — ")
+                    .append(plays)
+                    .append(plays == 1 ? " reprodução" : " reproduções")
+                    .append("\n");
+        }
+
+        return result.length() == 0 ? "Nenhuma música" : result.toString();
+    }
 }

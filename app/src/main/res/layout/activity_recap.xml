@@ -58,6 +58,18 @@
             android:orientation="horizontal">
 
             <Button
+                android:id="@+id/periodDay"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="DIA"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:minWidth="0dp"
+                android:padding="2dp" />
+
+            <Button
                 android:id="@+id/periodWeek"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
@@ -91,6 +103,40 @@
                 android:textStyle="bold"
                 android:minWidth="0dp"
                 android:padding="2dp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/dayDateSelector"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/dayDateInput"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:hint="DD/MM/AAAA"
+                android:inputType="phone"
+                android:digits="0123456789/"
+                android:singleLine="true"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_muted"
+                android:background="@drawable/bg_card_light" />
+
+            <Button
+                android:id="@+id/dayCalendarButton"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:text="CALENDÁRIO"
+                android:textSize="10sp"
+                android:minWidth="0dp" />
 
         </LinearLayout>
 

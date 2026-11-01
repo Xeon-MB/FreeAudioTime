@@ -1,8 +1,10 @@
 
 package com.example.freeaudiotime;
 
+import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Button;
@@ -51,12 +53,19 @@ public class RecapActivity extends AppCompatActivity {
     private static final int SEMANA = 0;
     private static final int MES = 1;
     private static final int ANO = 2;
+    private static final int DIA = 3;
 
     private JSONObject history;
 
     private Button weekButton;
     private Button monthButton;
     private Button yearButton;
+    private LocalDate dataSelecionada = LocalDate.now();
+    private Button dayButton;
+    private Button dayCalendarButton;
+    private EditText dayDateInput;
+    private LinearLayout dayDateSelector;
+
 
     private TextView totalView;
     private TextView artistView;
@@ -99,6 +108,72 @@ public class RecapActivity extends AppCompatActivity {
         artistPeriodTitle = findViewById(R.id.artistPeriodTitle);
         trackPeriodTitle = findViewById(R.id.trackPeriodTitle);
         bestDayDescription = findViewById(R.id.bestDayDescription);
+        dayButton = findViewById(R.id.periodDay);
+        dayCalendarButton = findViewById(R.id.dayCalendarButton);
+        dayDateInput = findViewById(R.id.dayDateInput);
+        dayDateSelector = findViewById(R.id.dayDateSelector);
+
+        dayCalendarButton.setOnClickListener(v -> {
+            DatePickerDialog dialog = new DatePickerDialog(
+                    this,
+                    (view, year, month, dayOfMonth) -> {
+                        dataSelecionada = LocalDate.of(
+                                year, month + 1, dayOfMonth
+                        );
+
+                        dayDateInput.setText(
+                                dataSelecionada.format(
+                                        DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                                )
+                        );
+
+                        carregarPeriodo(DIA);
+                    },
+                    dataSelecionada.getYear(),
+                    dataSelecionada.getMonthValue() - 1,
+                    dataSelecionada.getDayOfMonth()
+            );
+
+            dialog.getDatePicker().setMaxDate(
+                    System.currentTimeMillis()
+            );
+
+            dialog.show();
+        });
+
+        dayButton.setOnClickListener(v -> carregarPeriodo(DIA));
+
+        dayDateInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                try {
+                    DateTimeFormatter formato = DateTimeFormatter
+                            .ofPattern("dd/MM/uuuu")
+                            .withResolverStyle(
+                                    java.time.format.ResolverStyle.STRICT
+                            );
+
+                    LocalDate data = LocalDate.parse(
+                            dayDateInput.getText().toString().trim(),
+                            formato
+                    );
+
+                    if (data.isAfter(LocalDate.now())) {
+                        dayDateInput.setError("Data futura não permitida.");
+                        return true;
+                    }
+
+                    dataSelecionada = data;
+                    carregarPeriodo(DIA);
+
+                } catch (java.time.DateTimeException e) {
+                    dayDateInput.setError("Data inválida. Use DD/MM/AAAA.");
+                }
+
+                return true;
+            }
+
+            return false;
+        });
 
         exportButton.setOnClickListener(v -> {
             if (paletaPronta) {
@@ -156,6 +231,15 @@ public class RecapActivity extends AppCompatActivity {
             artistPeriodTitle.setText("ARTISTA DO MÊS");
             trackPeriodTitle.setText("MÚSICA DO MÊS");
 
+        } else if (periodo == DIA) {
+
+            periodTotalDescription.setText("DE MÚSICA NESTE DIA");
+            chartTitle.setText("SEU RITMO NO DIA");
+            chartSubtitle.setText("Tempo de música na data selecionada");
+            bestDayTitle.setText("SEU DESTAQUE DO DIA");
+            bestDayDescription.setText("Confira sua atividade musical nesta data.");
+            artistPeriodTitle.setText("ARTISTA DO DIA");
+            trackPeriodTitle.setText("MÚSICA DO DIA");
         } else {
 
             periodTotalDescription.setText("DE MÚSICA NESTE ANO");
@@ -183,6 +267,13 @@ public class RecapActivity extends AppCompatActivity {
             artists = PlaybackStatistics.getMonthlyTopArtists(history);
             tracks = PlaybackStatistics.getMonthlyTopTracks(history);
 
+        }  else if (periodo == DIA) {
+
+            String data = dataSelecionada.toString();
+
+            total = PlaybackStatistics.getDailyTotal(history, data);
+            artists = PlaybackStatistics.getDailyTopArtists(history, data);
+            tracks = PlaybackStatistics.getDailyTopTracks(history, data);
         } else {
 
             total = PlaybackStatistics.getYearlyTotal(history);
@@ -204,6 +295,15 @@ public class RecapActivity extends AppCompatActivity {
                     PlaybackStatistics.getMonthlyTotalsLastMonths(history, 7)
             );
 
+        } else if (periodo == DIA) {
+
+            chart.setDailyData(
+                    dataSelecionada.toString(),
+                    PlaybackStatistics.getDailyTotal(
+                            history,
+                            dataSelecionada.toString()
+                    )
+            );
         } else {
 
             chart.setYearlyData(
@@ -253,6 +353,10 @@ public class RecapActivity extends AppCompatActivity {
 
         atualizarPeriodo(periodo);
 
+        dayDateSelector.setVisibility(
+                periodo == DIA ? View.VISIBLE : View.GONE
+        );
+
         Map<String, Long> dailyTotals =
                 PlaybackStatistics.getDailyTotals(history);
 
@@ -262,9 +366,28 @@ public class RecapActivity extends AppCompatActivity {
             atualizarMelhorDiaDaSemanaNoMes(dailyTotals);
         } else if (periodo == ANO) {
             atualizarMelhorMes(dailyTotals);
-        }
+        }  else if (periodo == DIA) {
 
-        atualizarBotoes(periodo);
+        long tempo = PlaybackStatistics.getDailyTotal(
+                history,
+                dataSelecionada.toString()
+        );
+
+        TextView bestDayName = findViewById(R.id.bestDayName);
+        TextView bestDayTime = findViewById(R.id.bestDayTime);
+
+        bestDayName.setText(
+                tempo > 0 ? "DIA REGISTRADO" : "SEM REGISTROS"
+        );
+
+        bestDayTime.setText(formatarTempo(tempo));
+
+        bestDayDescription.setText(
+                tempo > 0
+                        ? "Tempo de música nesta data."
+                        : "Nenhuma atividade musical registrada nesta data."
+        );
+    }
 
         atualizarBotoes(periodo);
         View comparison = findViewById(R.id.weeklyComparison);
@@ -281,7 +404,12 @@ public class RecapActivity extends AppCompatActivity {
 
     private void atualizarBotoes(int selecionado) {
 
-        Button[] botoes = {weekButton, monthButton, yearButton};
+        Button[] botoes = {
+                weekButton,
+                monthButton,
+                yearButton,
+                dayButton
+        };
 
         int verde = ContextCompat.getColor(this, R.color.card_dark);
         int claro = ContextCompat.getColor(this, R.color.card_light);
@@ -357,6 +485,11 @@ public class RecapActivity extends AppCompatActivity {
 
             texto = hoje.format(formatoMes);
 
+        } else if (periodo == DIA) {
+
+            texto = dataSelecionada.format(
+                    DateTimeFormatter.ofPattern("dd MMM yyyy", brasil)
+            );
         } else {
 
             texto = String.valueOf(hoje.getYear());
@@ -679,12 +812,23 @@ public class RecapActivity extends AppCompatActivity {
                 .setText("/// " + (totalSegundos / 60) + " MIN");
 
         // Artista favorito
-        String rankingArtistas =
-                periodoAtual == SEMANA
-                        ? PlaybackStatistics.getWeeklyTopArtists(history)
-                        : periodoAtual == MES
-                          ? PlaybackStatistics.getMonthlyTopArtists(history)
-                          : PlaybackStatistics.getYearlyTopArtists(history);
+        String rankingArtistas;
+
+        if (periodoAtual == SEMANA) {
+            rankingArtistas = PlaybackStatistics.getWeeklyTopArtists(history);
+
+        } else if (periodoAtual == MES) {
+            rankingArtistas = PlaybackStatistics.getMonthlyTopArtists(history);
+
+        } else if (periodoAtual == DIA) {
+            rankingArtistas = PlaybackStatistics.getDailyTopArtists(
+                    history,
+                    dataSelecionada.toString()
+            );
+
+        } else {
+            rankingArtistas = PlaybackStatistics.getYearlyTopArtists(history);
+        }
 
         String artistaCompleto = primeiroItem(rankingArtistas);
 
@@ -1222,6 +1366,13 @@ public class RecapActivity extends AppCompatActivity {
 
         if (periodoAtual == MES) {
             return PlaybackStatistics.getMonthlyTotal(history);
+        }
+
+        if (periodoAtual == DIA) {
+            return PlaybackStatistics.getDailyTotal(
+                    history,
+                    dataSelecionada.toString()
+            );
         }
 
         return PlaybackStatistics.getYearlyTotal(history);

@@ -28,6 +28,8 @@ public class DailyActivityChart extends View {
     private static final int MODE_MONTH = 1;
     private static final int MODE_YEAR = 2;
 
+    private static final int MODE_DAY = 3;
+
     private int currentMode = MODE_WEEK;
 
     private final int green = Color.rgb(183, 255, 0);
@@ -61,6 +63,13 @@ public class DailyActivityChart extends View {
         invalidate();
     }
 
+    public void setDailyData(String date, long seconds) {
+        dailyTotals = new java.util.HashMap<>();
+        dailyTotals.put(date, seconds);
+        currentMode = MODE_DAY;
+        invalidate();
+    }
+
     private float dp(float value) {
         return value * getResources().getDisplayMetrics().density;
     }
@@ -73,8 +82,10 @@ public class DailyActivityChart extends View {
             drawWeekly(canvas);
         } else if (currentMode == MODE_MONTH) {
             drawAggregated(canvas, monthlyTotals, MODE_MONTH);
-        } else {
+        } else if (currentMode == MODE_YEAR) {
             drawAggregated(canvas, yearlyTotals, MODE_YEAR);
+        } else if (currentMode == MODE_DAY) {
+            drawDaily(canvas);
         }
     }
 
@@ -200,6 +211,106 @@ public class DailyActivityChart extends View {
                     paint
             );
         }
+    }
+
+    private void drawDaily(Canvas canvas) {
+
+        if (dailyTotals == null || dailyTotals.isEmpty()) return;
+
+        float width = getWidth();
+        float height = getHeight();
+
+        float left = dp(18);
+        float right = width - dp(18);
+        float top = dp(30);
+        float bottom = height - dp(38);
+
+        float centerX = (left + right) / 2f;
+        float barWidth = dp(55);
+        float chartHeight = bottom - top;
+
+        Map.Entry<String, Long> entry =
+                dailyTotals.entrySet().iterator().next();
+
+        String date = entry.getKey();
+        long seconds = entry.getValue();
+
+        long maxValue = Math.max(seconds, 60);
+
+        float barHeight = seconds > 0
+                ? Math.max((seconds / (float) maxValue) * chartHeight * 0.85f, dp(4))
+                : 0;
+
+        float barTop = bottom - barHeight;
+
+        paint.setColor(gridColor);
+        paint.setStrokeWidth(dp(1));
+
+        for (int i = 0; i <= 3; i++) {
+            float y = top + (chartHeight * i / 3f);
+            canvas.drawLine(left, y, right, y, paint);
+        }
+
+        RectF backgroundBar = new RectF(
+                centerX - barWidth / 2,
+                top,
+                centerX + barWidth / 2,
+                bottom
+        );
+
+        paint.setColor(darkGreen);
+        canvas.drawRoundRect(backgroundBar, dp(7), dp(7), paint);
+
+        if (seconds > 0) {
+            RectF bar = new RectF(
+                    centerX - barWidth / 2,
+                    barTop,
+                    centerX + barWidth / 2,
+                    bottom
+            );
+
+            paint.setColor(green);
+            canvas.drawRoundRect(bar, dp(7), dp(7), paint);
+        }
+
+        paint.setColor(textColor);
+        paint.setTextSize(dp(12));
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setFakeBoldText(true);
+
+        String valueText = formatarTempoGrafico(seconds);
+
+        canvas.drawText(
+                valueText,
+                centerX,
+                Math.max(dp(15), barTop - dp(8)),
+                paint
+        );
+
+        paint.setColor(muted);
+        paint.setTextSize(dp(11));
+        paint.setFakeBoldText(false);
+
+        canvas.drawText(
+                LocalDate.parse(date).format(
+                        java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                ),
+                centerX,
+                height - dp(12),
+                paint
+        );
+    }
+
+    private String formatarTempoGrafico(long seconds) {
+
+        long hours = seconds / 3600;
+        long minutes = (seconds % 3600) / 60;
+
+        if (hours > 0) {
+            return hours + "h " + minutes + "min";
+        }
+
+        return minutes + " min";
     }
 
     // Gráficos mensal e anual
