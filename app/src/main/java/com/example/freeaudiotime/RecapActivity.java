@@ -821,7 +821,6 @@
     
             View arte = LayoutInflater.from(this)
                     .inflate(R.layout.recap_share, null, false);
-            aplicarPaleta(arte);
             View shareTimeCard = arte.findViewById(R.id.shareTimeCard);
     
             if (shareTimeCard != null) {
@@ -924,18 +923,14 @@
             // Ranking de músicas
             LinearLayout shareTopTracks =
                     arte.findViewById(R.id.shareTopTracks);
-    
+
             mostrarRankingNaImagem(shareTopTracks);
             carregarConquistasNaImagem(arte);
-    
-    // Aplica as cores dinâmicas do recap
-            View shareCard = arte.findViewById(R.id.shareCard);
-            shareCard.setBackgroundColor(corFundo);
-    
-            View timeCard = arte.findViewById(R.id.shareTimeCard);
-            timeCard.setBackgroundColor(corDestaque);
-    
-            // Renderização
+
+// Aplica a cor do artista aos textos verdes
+            aplicarCorDestaqueNosTextos(arte);
+
+// Renderização
             int largura = dp(360);
     
             int larguraSpec = View.MeasureSpec.makeMeasureSpec(
@@ -1366,33 +1361,42 @@
         private int dp(float valor) {
             return (int) (valor * getResources().getDisplayMetrics().density + 0.5f);
         }
-    
+
         private void extrairCores(Bitmap bitmap) {
+
             if (bitmap == null) {
                 paletaPronta = true;
                 verificarExportacaoPendente();
                 return;
             }
-    
+
             paletaPronta = false;
-    
+
             Palette.from(bitmap).generate(palette -> {
+
                 corFundo = palette.getDarkMutedColor(
                         Color.rgb(16, 29, 23)
                 );
-    
+
                 corDestaque = palette.getVibrantColor(
                         palette.getDarkVibrantColor(
                                 Color.rgb(36, 69, 54)
                         )
                 );
-    
-                corTexto = Color.WHITE;
-    
+
+                // Garante contraste entre o fundo e o destaque.
+                if (calcularContraste(corFundo, corDestaque) < 3.0) {
+                    corDestaque = Color.rgb(183, 255, 0);
+                }
+
+                // Escolhe uma cor de texto legível sobre o destaque.
+                corTexto = escolherTexto(corDestaque);
+
                 paletaPronta = true;
                 verificarExportacaoPendente();
             });
         }
+
     
         private void verificarExportacaoPendente() {
             if (exportacaoPendente && paletaPronta) {
@@ -1403,7 +1407,7 @@
     
         private long obterTotalPeriodo() {
     
-            if (periodoAtual == SEMANA) {
+            if (periodoAtual == RecapActivity.SEMANA) {
                 return PlaybackStatistics.getWeeklyTotal(history);
             }
     
@@ -1542,6 +1546,45 @@
                     (int) (Color.blue(cor) * fator)
             );
         }
+
+        private double calcularLuminosidade(int cor) {
+            double r = Color.red(cor) / 255.0;
+            double g = Color.green(cor) / 255.0;
+            double b = Color.blue(cor) / 255.0;
+
+            r = r <= 0.03928 ? r / 12.92
+                    : Math.pow((r + 0.055) / 1.055, 2.4);
+
+            g = g <= 0.03928 ? g / 12.92
+                    : Math.pow((g + 0.055) / 1.055, 2.4);
+
+            b = b <= 0.03928 ? b / 12.92
+                    : Math.pow((b + 0.055) / 1.055, 2.4);
+
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        }
+
+        private double calcularContraste(int cor1, int cor2) {
+            double l1 = calcularLuminosidade(cor1);
+            double l2 = calcularLuminosidade(cor2);
+
+            double clara = Math.max(l1, l2);
+            double escura = Math.min(l1, l2);
+
+            return (clara + 0.05) / (escura + 0.05);
+        }
+
+        private int escolherTexto(int fundo) {
+            double contrasteBranco =
+                    calcularContraste(fundo, Color.WHITE);
+
+            double contrastePreto =
+                    calcularContraste(fundo, Color.BLACK);
+
+            return contrasteBranco >= contrastePreto
+                    ? Color.rgb(244, 242, 223)
+                    : Color.rgb(17, 21, 17);
+        }
     
         private void mostrarOutrosArtistasNaImagem(
                 LinearLayout container,
@@ -1551,7 +1594,7 @@
     
             TextView titulo = new TextView(this);
             titulo.setText("ALSO IN ROTATION");
-            titulo.setTextColor(corDestaque);
+            titulo.setTextColor(Color.rgb(183, 255, 0));
             titulo.setTextSize(11);
             titulo.setTypeface(null, Typeface.BOLD);
             titulo.setLetterSpacing(0.08f);
@@ -1584,7 +1627,7 @@
     
                 TextView posicao = new TextView(this);
                 posicao.setText(String.format("%02d", i + 1));
-                posicao.setTextColor(corDestaque);
+                posicao.setTextColor(Color.rgb(183, 255, 0));
                 posicao.setTextSize(15);
                 posicao.setTypeface(null, Typeface.BOLD);
     
@@ -1594,13 +1637,13 @@
     
                 TextView nome = new TextView(this);
                 nome.setText(artista.toUpperCase());
-                nome.setTextColor(corTexto);
+                nome.setTextColor(Color.rgb(240, 235, 221));
                 nome.setTextSize(11);
                 nome.setTypeface(null, Typeface.BOLD);
     
                 TextView duracao = new TextView(this);
                 duracao.setText(tempo.toUpperCase());
-                duracao.setTextColor(corTexto);
+                duracao.setTextColor(Color.rgb(240, 235, 221));
                 duracao.setTextSize(9);
     
                 textos.addView(nome);
@@ -1703,7 +1746,7 @@
 
                 TextView nome = new TextView(this);
                 nome.setText(nomes[i]);
-                nome.setTextColor(corTexto);
+                nome.setTextColor(Color.rgb(240, 235, 221));
                 nome.setTextSize(12);
                 nome.setTypeface(null, Typeface.BOLD);
 
@@ -1713,7 +1756,7 @@
                                 DateTimeFormatter.ofPattern("dd/MM/yyyy")
                         )
                 );
-                data.setTextColor(corDestaque);
+                data.setTextColor(Color.rgb(183, 255, 0));
                 data.setTextSize(10);
 
                 informacoes.addView(nome);
@@ -1730,7 +1773,7 @@
             if (quantidade == 0) {
                 TextView vazio = new TextView(this);
                 vazio.setText("Nenhuma conquista desbloqueada neste período.");
-                vazio.setTextColor(corTexto);
+                vazio.setTextColor(Color.rgb(240, 235, 221));
                 vazio.setTextSize(11);
 
                 container.addView(vazio);
@@ -1773,6 +1816,26 @@
             mostrarConquistasNaImagem(container, inicio, fim);
 
             secao.setVisibility(View.VISIBLE);
+        }
+
+        private void aplicarCorDestaqueNosTextos(View view) {
+            if (view instanceof TextView) {
+                TextView texto = (TextView) view;
+
+                int verdeOriginal = Color.rgb(183, 255, 0);
+
+                if (texto.getCurrentTextColor() == verdeOriginal) {
+                    texto.setTextColor(corDestaque);
+                }
+            }
+
+            if (view instanceof ViewGroup) {
+                ViewGroup grupo = (ViewGroup) view;
+
+                for (int i = 0; i < grupo.getChildCount(); i++) {
+                    aplicarCorDestaqueNosTextos(grupo.getChildAt(i));
+                }
+            }
         }
     
         }
