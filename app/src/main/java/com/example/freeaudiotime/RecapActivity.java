@@ -258,9 +258,13 @@ public class RecapActivity extends AppCompatActivity {
 
         if (periodo == SEMANA) {
             atualizarMelhorDia(dailyTotals);
+        } else if (periodo == MES) {
+            atualizarMelhorDiaDaSemanaNoMes(dailyTotals);
         } else if (periodo == ANO) {
             atualizarMelhorMes(dailyTotals);
         }
+
+        atualizarBotoes(periodo);
 
         atualizarBotoes(periodo);
         View comparison = findViewById(R.id.weeklyComparison);
@@ -408,6 +412,69 @@ public class RecapActivity extends AppCompatActivity {
 
         description.setText(
                 "Seu dia com mais música nos últimos 7 dias."
+        );
+    }
+
+    private void atualizarMelhorDiaDaSemanaNoMes(
+            Map<String, Long> dailyTotals) {
+
+        LocalDate hoje = LocalDate.now();
+
+        Map<Integer, Long> totaisPorDia = new HashMap<>();
+
+        for (Map.Entry<String, Long> entry : dailyTotals.entrySet()) {
+
+            try {
+                LocalDate data = LocalDate.parse(entry.getKey());
+
+                if (data.getYear() == hoje.getYear()
+                        && data.getMonthValue() == hoje.getMonthValue()) {
+
+                    int diaSemana = data.getDayOfWeek().getValue();
+
+                    totaisPorDia.put(
+                            diaSemana,
+                            totaisPorDia.getOrDefault(diaSemana, 0L)
+                                    + entry.getValue()
+                    );
+                }
+
+            } catch (Exception ignored) {
+            }
+        }
+
+        TextView dayName = findViewById(R.id.bestDayName);
+        TextView dayTime = findViewById(R.id.bestDayTime);
+        TextView description = findViewById(R.id.bestDayDescription);
+
+        if (totaisPorDia.isEmpty()) {
+            dayName.setText("SEM REPRODUÇÃO");
+            dayTime.setText("0min");
+            description.setText("Ainda não há registros neste mês.");
+            return;
+        }
+
+        int melhorDia = 0;
+        long maiorTempo = 0;
+
+        for (Map.Entry<Integer, Long> entry : totaisPorDia.entrySet()) {
+
+            if (entry.getValue() > maiorTempo) {
+                melhorDia = entry.getKey();
+                maiorTempo = entry.getValue();
+            }
+        }
+
+        Locale brasil = new Locale("pt", "BR");
+
+        String nomeDia = java.time.DayOfWeek.of(melhorDia)
+                .getDisplayName(TextStyle.FULL, brasil);
+
+        dayName.setText(nomeDia.toUpperCase(brasil));
+        dayTime.setText(formatarTempo(maiorTempo));
+
+        description.setText(
+                "Dia da semana em que você mais ouviu música neste mês."
         );
     }
 
