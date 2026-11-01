@@ -65,8 +65,14 @@ public class MediaNotificationListener extends NotificationListenerService {
             Arrays.asList(
                     "com.stash.app",
                     "com.spotify.music",
+                    "com.google.android.apps.youtube.music",
                     "deezer.android.app",
-                    "com.google.android.apps.youtube.music"
+                    "com.soundcloud.android",
+                    "com.amazon.mp3",
+                    "com.apple.android.music",
+                    "com.opentune.player",
+                    "br.com.music.wlisten2.app",
+                    "com.dywx.larkplayer"
             )
     );
 
@@ -589,9 +595,17 @@ public class MediaNotificationListener extends NotificationListenerService {
         if (extras != null) {
             Log.d(TAG, "========== EXTRAS DO PLAYBACK ==========");
 
-            for (String key : extras.keySet()) {
-                Object value = extras.get(key);
-                Log.d(TAG, "PLAYBACK EXTRA: " + key + " = " + value);
+            try {
+                for (String key : extras.keySet()) {
+                    try {
+                        Object value = extras.get(key);
+                        Log.d(TAG, "PLAYBACK EXTRA: " + key + " = " + value);
+                    } catch (RuntimeException e) {
+                        Log.w(TAG, "Extra ignorado por incompatibilidade: " + key);
+                    }
+                }
+            } catch (RuntimeException e) {
+                Log.w(TAG, "Não foi possível ler os extras do PlaybackState.");
             }
 
             Log.d(TAG, "========== FIM DOS EXTRAS ==========");
