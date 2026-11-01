@@ -1140,4 +1140,46 @@ public class PlaybackStatistics {
 
         return result.length() == 0 ? "Nenhuma música" : result.toString();
     }
+
+    public static int getDailyUniqueTracks(JSONObject history, String selectedDate) {
+
+        JSONArray sessions = history.optJSONArray("sessions");
+
+        if (sessions == null) {
+            return 0;
+        }
+
+        java.util.Set<String> musicas = new java.util.HashSet<>();
+
+        for (int i = 0; i < sessions.length(); i++) {
+
+            JSONObject session = sessions.optJSONObject(i);
+
+            if (session == null) continue;
+
+            String date = session.optString("date", "");
+            String title = session.optString("title", "");
+            String artist = session.optString("artist", "");
+
+            if (date.length() < 10 || title.isEmpty()) {
+                continue;
+            }
+
+            if (date.substring(0, 10).equals(selectedDate)) {
+
+                String musica = title + " — " + artist;
+
+                if (musicas.add(musica)) {
+                    android.util.Log.d("DailyRecap", "MÚSICA CONTABILIZADA: " + musica);
+                } else {
+                    android.util.Log.d("DailyRecap", "DUPLICADA, IGNORADA: " + musica);
+                }
+            }
+        }
+        android.util.Log.d(
+                "DailyRecap",
+                "TOTAL DE MÚSICAS DIFERENTES: " + musicas.size()
+        );
+        return musicas.size();
+    }
 }

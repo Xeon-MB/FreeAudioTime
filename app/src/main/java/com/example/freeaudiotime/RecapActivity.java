@@ -211,6 +211,7 @@ public class RecapActivity extends AppCompatActivity {
     private void carregarPeriodo(int periodo) {
         periodoAtual = periodo;
 
+        // Configura os textos de cada período
         if (periodo == SEMANA) {
 
             periodTotalDescription.setText("DE MÚSICA NESTA SEMANA");
@@ -236,10 +237,11 @@ public class RecapActivity extends AppCompatActivity {
             periodTotalDescription.setText("DE MÚSICA NESTE DIA");
             chartTitle.setText("SEU RITMO NO DIA");
             chartSubtitle.setText("Tempo de música na data selecionada");
-            bestDayTitle.setText("SEU DESTAQUE DO DIA");
+            bestDayTitle.setText("MÚSICAS DIFERENTES OUVIDAS");
             bestDayDescription.setText("Confira sua atividade musical nesta data.");
             artistPeriodTitle.setText("ARTISTA DO DIA");
             trackPeriodTitle.setText("MÚSICA DO DIA");
+
         } else {
 
             periodTotalDescription.setText("DE MÚSICA NESTE ANO");
@@ -251,6 +253,7 @@ public class RecapActivity extends AppCompatActivity {
             trackPeriodTitle.setText("MÚSICA DO ANO");
         }
 
+        // Carrega os dados do período
         long total;
         String artists;
         String tracks;
@@ -267,13 +270,14 @@ public class RecapActivity extends AppCompatActivity {
             artists = PlaybackStatistics.getMonthlyTopArtists(history);
             tracks = PlaybackStatistics.getMonthlyTopTracks(history);
 
-        }  else if (periodo == DIA) {
+        } else if (periodo == DIA) {
 
             String data = dataSelecionada.toString();
 
             total = PlaybackStatistics.getDailyTotal(history, data);
             artists = PlaybackStatistics.getDailyTopArtists(history, data);
             tracks = PlaybackStatistics.getDailyTopTracks(history, data);
+
         } else {
 
             total = PlaybackStatistics.getYearlyTotal(history);
@@ -281,6 +285,7 @@ public class RecapActivity extends AppCompatActivity {
             tracks = PlaybackStatistics.getYearlyTopTracks(history);
         }
 
+        // Configura o gráfico
         DailyActivityChart chart = findViewById(R.id.dailyActivityChart);
 
         if (periodo == SEMANA) {
@@ -304,6 +309,7 @@ public class RecapActivity extends AppCompatActivity {
                             dataSelecionada.toString()
                     )
             );
+
         } else {
 
             chart.setYearlyData(
@@ -311,6 +317,7 @@ public class RecapActivity extends AppCompatActivity {
             );
         }
 
+        // Atualiza os dados exibidos
         rankingTracksAtual = tracks;
 
         totalView.setText(formatarTempo(total));
@@ -319,6 +326,7 @@ public class RecapActivity extends AppCompatActivity {
         mostrarRankingMusicas(tracks, history);
 
         artistView.setText(primeiroItem(artists));
+
         String artista = primeiroItem(artists);
 
         if (!artista.equals("Nenhum registro")) {
@@ -330,25 +338,33 @@ public class RecapActivity extends AppCompatActivity {
                 artista = artista.substring(0, separador).trim();
             }
         }
+
         android.util.Log.d("RecapDebug", "Artista recebido: " + artista);
 
         if (!artista.equals("Nenhum registro")) {
+
             android.util.Log.d("RecapDebug", "Chamando DeezerService...");
+
             DeezerService.buscarFotoArtista(this, artista, imagem -> {
+
                 if (imagem != null) {
                     weeklyArtistImage.setImageBitmap(imagem);
                     extrairCores(imagem);
+
                 } else {
                     weeklyArtistImage.setImageResource(
                             R.drawable.ic_launcher_foreground
                     );
                 }
             });
+
         } else {
+
             weeklyArtistImage.setImageResource(
                     R.drawable.ic_launcher_foreground
             );
         }
+
         trackView.setText(primeiroItem(tracks));
 
         atualizarPeriodo(periodo);
@@ -357,39 +373,49 @@ public class RecapActivity extends AppCompatActivity {
                 periodo == DIA ? View.VISIBLE : View.GONE
         );
 
+        // Atualiza o destaque do período
         Map<String, Long> dailyTotals =
                 PlaybackStatistics.getDailyTotals(history);
 
         if (periodo == SEMANA) {
+
             atualizarMelhorDia(dailyTotals);
+
         } else if (periodo == MES) {
+
             atualizarMelhorDiaDaSemanaNoMes(dailyTotals);
+
         } else if (periodo == ANO) {
+
             atualizarMelhorMes(dailyTotals);
-        }  else if (periodo == DIA) {
 
-        long tempo = PlaybackStatistics.getDailyTotal(
-                history,
-                dataSelecionada.toString()
-        );
+        } else if (periodo == DIA) {
 
-        TextView bestDayName = findViewById(R.id.bestDayName);
-        TextView bestDayTime = findViewById(R.id.bestDayTime);
+            int quantidade = PlaybackStatistics.getDailyUniqueTracks(
+                    history,
+                    dataSelecionada.toString()
+            );
 
-        bestDayName.setText(
-                tempo > 0 ? "DIA REGISTRADO" : "SEM REGISTROS"
-        );
+            TextView bestDayName = findViewById(R.id.bestDayName);
+            TextView bestDayTime = findViewById(R.id.bestDayTime);
 
-        bestDayTime.setText(formatarTempo(tempo));
+            bestDayName.setText(String.valueOf(quantidade));
 
-        bestDayDescription.setText(
-                tempo > 0
-                        ? "Tempo de música nesta data."
-                        : "Nenhuma atividade musical registrada nesta data."
-        );
-    }
+            bestDayTime.setText(
+                    quantidade == 1
+                            ? "MÚSICA DIFERENTE"
+                            : "MÚSICAS DIFERENTES"
+            );
+
+            bestDayDescription.setText(
+                    quantidade > 0
+                            ? "Quantidade de músicas diferentes ouvidas nesta data."
+                            : "Nenhuma música registrada nesta data."
+            );
+        }
 
         atualizarBotoes(periodo);
+
         View comparison = findViewById(R.id.weeklyComparison);
 
         comparison.setVisibility(
@@ -800,8 +826,21 @@ public class RecapActivity extends AppCompatActivity {
         }
 
         // Período
+// Identificação do período na imagem
+        String tituloPeriodo;
+
+        if (periodoAtual == DIA) {
+            tituloPeriodo = "RECAP DIÁRIA";
+        } else if (periodoAtual == SEMANA) {
+            tituloPeriodo = "RECAP SEMANAL";
+        } else if (periodoAtual == MES) {
+            tituloPeriodo = "RECAP MENSAL";
+        } else {
+            tituloPeriodo = "RECAP ANUAL";
+        }
+
         ((TextView) arte.findViewById(R.id.sharePeriod))
-                .setText(periodView.getText());
+                .setText(tituloPeriodo + "\n" + periodView.getText());
 
         // Tempo total
         ((TextView) arte.findViewById(R.id.shareTotal))
