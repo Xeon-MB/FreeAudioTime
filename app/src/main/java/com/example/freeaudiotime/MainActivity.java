@@ -28,6 +28,7 @@ import androidx.appcompat.app.AlertDialog;
 
 import android.content.Intent;
 import android.widget.Button;
+import android.widget.Toast;
 
 
 import org.json.JSONObject;
@@ -64,6 +65,17 @@ public class MainActivity extends AppCompatActivity {
 
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+        Button refreshButton = findViewById(R.id.refreshButton);
+
+        refreshButton.setOnClickListener(v -> {
+            carregarEstatisticas();
+
+            Toast.makeText(
+                    this,
+                    "Estatísticas atualizadas!",
+                    Toast.LENGTH_SHORT
+            ).show();
+        });
         currentTrackProgress = findViewById(R.id.currentTrackProgress);
         currentTrackElapsed = findViewById(R.id.currentTrackElapsed);
         currentTrackRemaining = findViewById(R.id.currentTrackRemaining);

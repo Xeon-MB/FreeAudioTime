@@ -45,6 +45,17 @@
             android:textSize="12sp"
             android:textStyle="bold" />
 
+        <Button
+            android:id="@+id/refreshButton"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="@color/button_secondary"
+            android:text="↻ Atualizar dados"
+            android:textColor="@color/button_secondary_text"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
         <!-- Painel principal -->
         <LinearLayout
             android:layout_width="match_parent"
