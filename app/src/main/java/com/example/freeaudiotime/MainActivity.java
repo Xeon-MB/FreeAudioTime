@@ -22,6 +22,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.widget.ProgressBar;
 import android.os.SystemClock;
+import android.provider.Settings;
+import android.content.ComponentName;
+import androidx.appcompat.app.AlertDialog;
 
 import android.content.Intent;
 import android.widget.Button;
@@ -106,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
 
             startActivity(intent);
         });
+
+        verificarPermissaoNotificacao();
     }
 
     @Override
@@ -301,6 +306,50 @@ public class MainActivity extends AppCompatActivity {
                 minutos,
                 segundos
         );
+    }
+
+    private boolean temPermissaoNotificacao() {
+
+        String listeners = Settings.Secure.getString(
+                getContentResolver(),
+                "enabled_notification_listeners"
+        );
+
+        if (listeners == null) {
+            return false;
+        }
+
+        ComponentName component = new ComponentName(
+                this,
+                MediaNotificationListener.class
+        );
+
+        return listeners.contains(component.flattenToString());
+    }
+
+    private void verificarPermissaoNotificacao() {
+
+        if (temPermissaoNotificacao()) {
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Permissão necessária")
+                .setMessage(
+                        "O FreeAudioTime precisa de acesso às notificações " +
+                                "de mídia para acompanhar suas reproduções. " +
+                                "Ative essa permissão nas configurações do Android."
+                )
+                .setPositiveButton("Ativar permissão", (dialog, which) -> {
+                    Intent intent = new Intent(
+                            Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS
+                    );
+
+                    startActivity(intent);
+                })
+                .setNegativeButton("Agora não", null)
+                .setCancelable(false)
+                .show();
     }
 
 }

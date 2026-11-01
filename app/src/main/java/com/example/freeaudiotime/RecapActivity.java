@@ -251,6 +251,9 @@ public class RecapActivity extends AppCompatActivity {
         trackView.setText(primeiroItem(tracks));
 
         atualizarPeriodo(periodo);
+        if (periodo == SEMANA) {
+            atualizarMelhorDia(PlaybackStatistics.getDailyTotals(history));
+        }
         atualizarBotoes(periodo);
         View comparison = findViewById(R.id.weeklyComparison);
 

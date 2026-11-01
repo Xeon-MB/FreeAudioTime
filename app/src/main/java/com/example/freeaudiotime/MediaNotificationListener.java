@@ -15,9 +15,15 @@ import java.io.FileOutputStream;
 import android.content.Intent;
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.UUID;
 import android.os.Handler;
 import android.os.Looper;
+import java.util.Arrays;
+import java.util.Set;
+import android.service.notification.StatusBarNotification;
+import android.app.Notification;
+import android.os.Bundle;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -55,7 +61,14 @@ public class MediaNotificationListener extends NotificationListenerService {
     private final JSONArray playbackSessions = new JSONArray();
 
     private static final String TAG = "AudioTime";
-    private static final String TARGET_PACKAGE = "com.stash.app";
+    private static final Set<String> SUPPORTED_PACKAGES = new HashSet<>(
+            Arrays.asList(
+                    "com.stash.app",
+                    "com.spotify.music",
+                    "deezer.android.app",
+                    "com.google.android.apps.youtube.music"
+            )
+    );
 
     private MediaSessionManager manager;
     private ComponentName componentName;
@@ -147,7 +160,7 @@ public class MediaNotificationListener extends NotificationListenerService {
             @Override
             public void onSessionDestroyed() {
 
-                Log.d(TAG, "Sessão do Stash encerrada!");
+                Log.d(TAG, "Sessão de mídia encerrada!");
 
                 if (isPlaying) {
                     saveElapsedTime();
@@ -180,6 +193,45 @@ public class MediaNotificationListener extends NotificationListenerService {
         }
     }
 
+    @Override
+    public void onNotificationPosted(StatusBarNotification sbn) {
+
+        Log.d(TAG, "NOTIFICAÇÃO RECEBIDA: " + sbn.getPackageName());
+
+        if (!"com.google.android.apps.youtube.music".equals(
+                sbn.getPackageName())) {
+            return;
+        }
+
+        Log.d(TAG, "========== NOTIFICAÇÃO YOUTUBE MUSIC ==========");
+
+        Log.d(TAG, "Package: " + sbn.getPackageName());
+
+        Notification notification = sbn.getNotification();
+
+        Log.d(TAG, "Category: " + notification.category);
+
+        if (notification.extras != null) {
+
+            Bundle extras = notification.extras;
+
+            for (String key : extras.keySet()) {
+
+                Object value = extras.get(key);
+
+                if (value instanceof String ||
+                        value instanceof CharSequence ||
+                        value instanceof Number ||
+                        value instanceof Boolean) {
+
+                    Log.d(TAG, "NOTIFICATION: " + key + " = " + value);
+                }
+            }
+        }
+
+        Log.d(TAG, "========== FIM DA NOTIFICAÇÃO ==========");
+    }
+
     private void startPeriodicSave() {
         saveHandler.removeCallbacks(periodicSave);
         saveHandler.postDelayed(periodicSave, 30_000);
@@ -198,6 +250,10 @@ public class MediaNotificationListener extends NotificationListenerService {
         long currentTime = SystemClock.elapsedRealtime();
 
         long elapsed = currentTime - playbackStartTime;
+
+        if (elapsed < 1000) {
+            return;
+        }
 
         accumulatedTime += elapsed;
 
@@ -288,39 +344,69 @@ public class MediaNotificationListener extends NotificationListenerService {
 
     private void updateStashSession(List<MediaController> sessions) {
 
-        MediaController stashController = null;
+        MediaController selectedController = null;
 
         for (MediaController controller : sessions) {
 
-            if (TARGET_PACKAGE.equals(controller.getPackageName())) {
-                stashController = controller;
+            String packageName = controller.getPackageName();
+
+            PlaybackState state = controller.getPlaybackState();
+
+            Log.d(TAG, "Sessão encontrada: " + packageName +
+                    " | Estado: " +
+                    (state != null ? state.getState() : "NULL"));
+
+            if (!SUPPORTED_PACKAGES.contains(packageName)) {
+                continue;
+            }
+
+
+            // Prioriza o aplicativo que está reproduzindo.
+            if (state != null &&
+                    state.getState() == PlaybackState.STATE_PLAYING) {
+
+                selectedController = controller;
                 break;
+            }
+
+            // Se nenhum estiver reproduzindo, preserva a sessão atual.
+            if (currentController != null &&
+                    controller.getSessionToken().equals(
+                            currentController.getSessionToken())) {
+
+                selectedController = controller;
+            }
+
+            if (selectedController == null) {
+                selectedController = controller;
             }
         }
 
-        if (stashController == null) {
+        if (selectedController == null) {
 
             unregisterCurrentController();
 
-            Log.d(TAG, "Nenhuma sessão do Stash ativa.");
+            Log.d(TAG, "Nenhum aplicativo compatível encontrado.");
             return;
         }
 
         if (currentController != null &&
                 currentController.getSessionToken().equals(
-                        stashController.getSessionToken())) {
+                        selectedController.getSessionToken())) {
             return;
         }
 
         unregisterCurrentController();
 
-        currentController = stashController;
+        currentController = selectedController;
 
         currentController.registerCallback(controllerCallback);
 
-        Log.d(TAG, "Monitorando o Stash!");
+        Log.d(TAG, "Monitorando: " +
+                currentController.getPackageName());
 
         logMetadata(currentController.getMetadata());
+
         logPlaybackState(currentController.getPlaybackState());
     }
     private void savePlaybackHistory() {
@@ -370,6 +456,31 @@ public class MediaNotificationListener extends NotificationListenerService {
             Log.d(TAG, "Metadados indisponíveis.");
             return;
         }
+
+        // INVESTIGAÇÃO TEMPORÁRIA DOS METADADOS
+        Log.d(TAG, "========== METADADOS COMPLETOS ==========");
+
+        for (String key : metadata.keySet()) {
+            try {
+                CharSequence text = metadata.getText(key);
+                if (text != null) {
+                    Log.d(TAG, "METADATA: " + key + " = " + text);
+                    continue;
+                }
+            } catch (Exception ignored) {
+            }
+
+            try {
+                long val = metadata.getLong(key);
+                Log.d(TAG, "METADATA: " + key + " = " + val);
+                continue;
+            } catch (Exception ignored) {
+            }
+
+            Log.d(TAG, "METADATA: " + key);
+        }
+
+        Log.d(TAG, "========== FIM DOS METADADOS ==========");
 
         String title = metadata.getString(
                 MediaMetadata.METADATA_KEY_TITLE
@@ -433,6 +544,19 @@ public class MediaNotificationListener extends NotificationListenerService {
         }
 
         int playbackState = state.getState();
+
+        Bundle extras = state.getExtras();
+
+        if (extras != null) {
+            Log.d(TAG, "========== EXTRAS DO PLAYBACK ==========");
+
+            for (String key : extras.keySet()) {
+                Object value = extras.get(key);
+                Log.d(TAG, "PLAYBACK EXTRA: " + key + " = " + value);
+            }
+
+            Log.d(TAG, "========== FIM DOS EXTRAS ==========");
+        }
         updatePlaybackTimer(state);
 
         currentTrackPosition = Math.max(0, state.getPosition());
