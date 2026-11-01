@@ -40,6 +40,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.time.format.TextStyle;
@@ -251,9 +252,16 @@ public class RecapActivity extends AppCompatActivity {
         trackView.setText(primeiroItem(tracks));
 
         atualizarPeriodo(periodo);
+
+        Map<String, Long> dailyTotals =
+                PlaybackStatistics.getDailyTotals(history);
+
         if (periodo == SEMANA) {
-            atualizarMelhorDia(PlaybackStatistics.getDailyTotals(history));
+            atualizarMelhorDia(dailyTotals);
+        } else if (periodo == ANO) {
+            atualizarMelhorMes(dailyTotals);
         }
+
         atualizarBotoes(periodo);
         View comparison = findViewById(R.id.weeklyComparison);
 
@@ -401,6 +409,67 @@ public class RecapActivity extends AppCompatActivity {
         description.setText(
                 "Seu dia com mais música nos últimos 7 dias."
         );
+    }
+
+    private void atualizarMelhorMes(Map<String, Long> dailyTotals) {
+
+        int anoAtual = LocalDate.now().getYear();
+
+        Map<Integer, Long> totaisMensais = new HashMap<>();
+
+        for (Map.Entry<String, Long> entry : dailyTotals.entrySet()) {
+
+            String data = entry.getKey();
+
+            if (data.length() < 10) continue;
+
+            try {
+                LocalDate dataRegistro = LocalDate.parse(data);
+
+                if (dataRegistro.getYear() == anoAtual) {
+                    int mes = dataRegistro.getMonthValue();
+
+                    totaisMensais.put(
+                            mes,
+                            totaisMensais.getOrDefault(mes, 0L)
+                                    + entry.getValue()
+                    );
+                }
+
+            } catch (Exception ignored) {
+            }
+        }
+
+        TextView dayName = findViewById(R.id.bestDayName);
+        TextView dayTime = findViewById(R.id.bestDayTime);
+        TextView description = findViewById(R.id.bestDayDescription);
+
+        if (totaisMensais.isEmpty()) {
+            dayName.setText("SEM REPRODUÇÃO");
+            dayTime.setText("0min");
+            description.setText("Ainda não há registros neste ano.");
+            return;
+        }
+
+        int melhorMes = 0;
+        long maiorTempo = 0;
+
+        for (Map.Entry<Integer, Long> entry : totaisMensais.entrySet()) {
+            if (entry.getValue() > maiorTempo) {
+                melhorMes = entry.getKey();
+                maiorTempo = entry.getValue();
+            }
+        }
+
+        Locale brasil = new Locale("pt", "BR");
+
+        String nomeMes = java.time.Month.of(melhorMes)
+                .getDisplayName(TextStyle.FULL, brasil);
+
+        dayName.setText(nomeMes.toUpperCase(brasil));
+        dayTime.setText(formatarTempo(maiorTempo));
+
+        description.setText("Seu mês com mais música neste ano.");
     }
 
 
