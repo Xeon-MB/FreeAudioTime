@@ -1,17 +1,20 @@
 package com.example.freeaudiotime;
 
 import android.os.Bundle;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.view.Gravity;
-import android.view.View;
 import android.widget.LinearLayout;
 import androidx.core.content.ContextCompat;
+import android.widget.EditText;
+import android.widget.Button;
+import android.widget.Toast;
+import android.view.View;
+
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -31,14 +34,21 @@ public class RecordsActivity extends AppCompatActivity {
         }
 
         carregarRecordes();
+        configurarMetas();
+        configurarMenuMetas();
     }
 
     private void carregarRecordes() {
         JSONObject history = PlaybackStorage.load(this);
+        carregarProgressoMetas(history);
 
         String bestDay = PlaybackStatistics.getBestDay(history);
         long bestDayTime = PlaybackStatistics.getBestDayTime(history);
-        int longestStreak = PlaybackStatistics.getLongestStreak(history);
+        int longestStreak =
+                PlaybackStatistics.getBestStreak(history, this);
+
+        int protections =
+                GoalStorage.getProtectionsRemaining(this);
         long totalTime = history.optLong("totalTime", 0);
         carregarConquistas(totalTime);
         long nextMilestone = PlaybackStatistics.getNextMilestone(totalTime);
@@ -51,6 +61,8 @@ public class RecordsActivity extends AppCompatActivity {
         TextView recordMilestoneView = findViewById(R.id.recordMilestone);
         TextView recordArtistView = findViewById(R.id.recordMostPlayedArtist);
         TextView recordTrackView = findViewById(R.id.recordMostPlayedTrack);
+        TextView recordProtectionsView =
+                findViewById(R.id.recordProtections);
 
         if (recordBestDayView != null) {
             recordBestDayView.setText(formatarData(bestDay));
@@ -73,6 +85,11 @@ public class RecordsActivity extends AppCompatActivity {
         }
         if (recordTrackView != null) {
             recordTrackView.setText(mostPlayedTrack);
+        }
+        if (recordProtectionsView != null) {
+            recordProtectionsView.setText(
+                    "🛡️ Proteções restantes: " + protections
+            );
         }
     }
 
@@ -212,4 +229,170 @@ public class RecordsActivity extends AppCompatActivity {
     private int cor(int resource) {
         return ContextCompat.getColor(this, resource);
     }
+
+    private void configurarMetas() {
+
+        EditText dailyInput = findViewById(R.id.dailyGoalInput);
+        EditText monthlyInput = findViewById(R.id.monthlyGoalInput);
+        EditText streakInput = findViewById(R.id.streakGoalInput);
+
+        Button saveButton = findViewById(R.id.saveGoalsButton);
+
+        // Carregar valores salvos
+        dailyInput.setText(String.valueOf(
+                GoalStorage.getDailyGoal(this) / 3600
+        ));
+
+        monthlyInput.setText(String.valueOf(
+                GoalStorage.getMonthlyGoal(this) / 3600
+        ));
+
+        streakInput.setText(String.valueOf(
+                GoalStorage.getStreakGoal(this)
+        ));
+
+        saveButton.setOnClickListener(v -> {
+
+            String dailyText = dailyInput.getText().toString().trim();
+            String monthlyText = monthlyInput.getText().toString().trim();
+            String streakText = streakInput.getText().toString().trim();
+
+            if (dailyText.isEmpty()
+                    || monthlyText.isEmpty()
+                    || streakText.isEmpty()) {
+
+                Toast.makeText(
+                        this,
+                        "Preencha todas as metas.",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                return;
+            }
+
+            try {
+                long dailyHours = Long.parseLong(dailyText);
+                long monthlyHours = Long.parseLong(monthlyText);
+                int streakDays = Integer.parseInt(streakText);
+
+                if (dailyHours < 0 || monthlyHours < 0 || streakDays < 0) {
+                    Toast.makeText(
+                            this,
+                            "Use valores iguais ou maiores que zero.",
+                            Toast.LENGTH_SHORT
+                    ).show();
+
+                    return;
+                }
+
+                GoalStorage.saveDailyGoal(
+                        this,
+                        dailyHours * 3600
+                );
+
+                GoalStorage.saveMonthlyGoal(
+                        this,
+                        monthlyHours * 3600
+                );
+
+                GoalStorage.saveStreakGoal(
+                        this,
+                        streakDays
+                );
+
+                Toast.makeText(
+                        this,
+                        "Metas salvas com sucesso!",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+            } catch (NumberFormatException e) {
+
+                Toast.makeText(
+                        this,
+                        "Digite valores válidos.",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+        });
+    }
+
+    private void configurarMenuMetas() {
+
+        LinearLayout goalsHeader = findViewById(R.id.goalsHeader);
+        LinearLayout goalsContent = findViewById(R.id.goalsContent);
+        TextView goalsArrow = findViewById(R.id.goalsArrow);
+
+        goalsHeader.setOnClickListener(v -> {
+
+            if (goalsContent.getVisibility() == View.GONE) {
+                goalsContent.setVisibility(View.VISIBLE);
+                goalsArrow.setText("▲");
+            } else {
+                goalsContent.setVisibility(View.GONE);
+                goalsArrow.setText("▼");
+            }
+        });
+    }
+
+
+    private void carregarProgressoMetas(JSONObject history) {
+
+        long dailyGoal = GoalStorage.getDailyGoal(this);
+        long monthlyGoal = GoalStorage.getMonthlyGoal(this);
+        int streakGoal = GoalStorage.getStreakGoal(this);
+
+        long dailyRemaining =
+                PlaybackStatistics.getDailyGoalRemaining(history, this);
+
+        long monthlyRemaining =
+                PlaybackStatistics.getMonthlyGoalRemaining(history, this);
+
+        int currentStreak =
+                PlaybackStatistics.getCurrentStreak(history, this);
+
+        long dailyListened = Math.max(0, dailyGoal - dailyRemaining);
+        long monthlyListened = Math.max(0, monthlyGoal - monthlyRemaining);
+
+        int dailyProgress =
+                PlaybackStatistics.getDailyGoalProgress(history, this);
+
+        int monthlyProgress =
+                PlaybackStatistics.getMonthlyGoalProgress(history, this);
+
+        int streakProgress = streakGoal > 0
+                ? (int) Math.min(100, currentStreak * 100.0 / streakGoal)
+                : 0;
+
+        ProgressBar dailyBar = findViewById(R.id.dailyProgressBar);
+        ProgressBar monthlyBar = findViewById(R.id.monthlyProgressBar);
+        ProgressBar streakBar = findViewById(R.id.streakProgressBar);
+
+        TextView dailyText = findViewById(R.id.dailyProgressText);
+        TextView monthlyText = findViewById(R.id.monthlyProgressText);
+        TextView streakText = findViewById(R.id.streakProgressText);
+
+        dailyBar.setProgress(dailyProgress);
+        monthlyBar.setProgress(monthlyProgress);
+        streakBar.setProgress(streakProgress);
+
+        dailyText.setText(
+                dailyGoal > 0
+                        ? formatarTempo(dailyListened) + " / " + formatarTempo(dailyGoal)
+                        : "Meta não definida"
+        );
+
+        monthlyText.setText(
+                monthlyGoal > 0
+                        ? formatarTempo(monthlyListened) + " / " + formatarTempo(monthlyGoal)
+                        : "Meta não definida"
+        );
+
+        streakText.setText(
+                streakGoal > 0
+                        ? currentStreak + " / " + streakGoal + " dias"
+                        : "Meta não definida"
+        );
+    }
+
 }
