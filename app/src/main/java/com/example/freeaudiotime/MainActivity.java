@@ -180,6 +180,33 @@ public class MainActivity extends AppCompatActivity {
     private void carregarEstatisticas() {
 
         JSONObject history = PlaybackStorage.load(this);
+
+        // Sequência e proteções
+        long currentStreak =
+                PlaybackStatistics.getCurrentStreak(history, this);
+
+        long bestStreak =
+                PlaybackStatistics.getBestStreak(history, this);
+
+        int protections =
+                GoalStorage.getProtectionsRemaining(this);
+
+        TextView currentStreakView =
+                findViewById(R.id.currentStreak);
+
+        TextView bestStreakView =
+                findViewById(R.id.bestStreak);
+
+        TextView protectionsView =
+                findViewById(R.id.streakProtections);
+
+        currentStreakView.setText(currentStreak + " dias");
+
+        bestStreakView.setText("Recorde: " + bestStreak + " dias");
+
+        protectionsView.setText(
+                "🛡️ Proteções restantes: " + protections
+        );
         Log.d("AudioTime", "Histórico carregado: " + history.toString());
 
         long totalTime = history.optLong("totalTime", 0);

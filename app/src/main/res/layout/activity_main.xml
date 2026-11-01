@@ -341,6 +341,59 @@
 
         </LinearLayout>
 
+        <!-- Sequência e proteções -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:background="@drawable/bg_card_dark"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔥 SUA SEQUÊNCIA"
+                android:textColor="@color/accent_soft"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/currentStreak"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="0 dias"
+                android:textColor="@color/text_on_dark"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/bestStreak"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Recorde: 0 dias"
+                android:textColor="@color/text_on_dark"
+                android:textSize="14sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="12dp"
+                android:background="@color/divider_color" />
+
+            <TextView
+                android:id="@+id/streakProtections"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🛡️ Proteções restantes: 3"
+                android:textColor="@color/text_on_dark"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
         <!-- Navegação -->
         <Button
             android:id="@+id/openRecap"

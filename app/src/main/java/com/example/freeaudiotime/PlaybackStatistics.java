@@ -11,7 +11,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.Set;
-import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.LinkedHashMap;
 
@@ -1182,4 +1181,185 @@ public class PlaybackStatistics {
         );
         return musicas.size();
     }
+
+
+    // PROGRESSO DA META DIÁRIA
+
+    public static long getDailyGoalRemaining(
+            JSONObject history, android.content.Context context) {
+
+        long goal = GoalStorage.getDailyGoal(context);
+
+        if (goal <= 0) return 0;
+
+        String today = LocalDate.now().toString();
+        long listened = getDailyTotal(history, today);
+
+        return Math.max(0, goal - listened);
+    }
+
+    public static int getDailyGoalProgress(
+            JSONObject history, android.content.Context context) {
+
+        long goal = GoalStorage.getDailyGoal(context);
+
+        if (goal <= 0) return 0;
+
+        String today = LocalDate.now().toString();
+        long listened = getDailyTotal(history, today);
+
+        return (int) Math.min(100, listened * 100 / goal);
+    }
+
+    // PROGRESSO DA META MENSAL
+
+    public static long getMonthlyGoalRemaining(
+            JSONObject history, android.content.Context context) {
+
+        long goal = GoalStorage.getMonthlyGoal(context);
+
+        if (goal <= 0) return 0;
+
+        long listened = getMonthlyTotal(history);
+
+        return Math.max(0, goal - listened);
+    }
+
+    public static int getMonthlyGoalProgress(
+            JSONObject history, android.content.Context context) {
+
+        long goal = GoalStorage.getMonthlyGoal(context);
+
+        if (goal <= 0) return 0;
+
+        long listened = getMonthlyTotal(history);
+
+        return (int) Math.min(100, listened * 100 / goal);
+    }
+
+    // DIAS QUE ATINGIRAM A META DIÁRIA NO MÊS ATUAL
+
+    public static int getMonthlyDaysGoalReached(
+            JSONObject history, android.content.Context context) {
+
+        long dailyGoal = GoalStorage.getDailyGoal(context);
+
+        if (dailyGoal <= 0) return 0;
+
+        Map<String, Long> dailyTotals = getDailyTotals(history);
+
+        YearMonth currentMonth = YearMonth.now();
+
+        int daysReached = 0;
+
+        for (Map.Entry<String, Long> entry : dailyTotals.entrySet()) {
+
+            try {
+                LocalDate date = LocalDate.parse(entry.getKey());
+
+                if (YearMonth.from(date).equals(currentMonth)
+                        && !date.isAfter(LocalDate.now())
+                        && entry.getValue() >= dailyGoal) {
+
+                    daysReached++;
+                }
+
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+
+        return daysReached;
+    }
+
+
+    // PROCESSAMENTO DA SEQUÊNCIA E DAS PROTEÇÕES
+
+    public static void updateStreak(
+            JSONObject history,
+            android.content.Context context) {
+
+        GoalStorage.initializeStreak(context);
+
+        Map<String, Long> dailyTotals = getDailyTotals(history);
+
+        LocalDate startDate;
+        LocalDate lastProcessedDate;
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        try {
+            startDate = LocalDate.parse(
+                    GoalStorage.getStreakStartDate(context));
+
+            lastProcessedDate = LocalDate.parse(
+                    GoalStorage.getLastProcessedDate(context));
+
+        } catch (DateTimeParseException e) {
+            android.util.Log.e("AudioTime", "Erro nas datas da sequência", e);
+            return;
+        }
+
+        int currentStreak = GoalStorage.getCurrentStreak(context);
+        int bestStreak = GoalStorage.getBestStreak(context);
+
+        LocalDate day = lastProcessedDate.plusDays(1);
+
+        while (!day.isAfter(yesterday)) {
+
+            if (day.isBefore(startDate)) {
+                day = day.plusDays(1);
+                continue;
+            }
+
+            String dateKey = day.toString();
+
+            long listened = dailyTotals.getOrDefault(dateKey, 0L);
+
+            if (listened >= GoalStorage.MINIMUM_LISTENING_SECONDS) {
+
+                currentStreak++;
+
+                if (currentStreak > bestStreak) {
+                    bestStreak = currentStreak;
+                }
+
+                GoalStorage.saveLastValidDate(context, dateKey);
+
+            } else if (currentStreak > 0) {
+
+                boolean protectedDay =
+                        GoalStorage.useProtectionForMonth(
+                                context,
+                                YearMonth.from(day)
+                        );
+
+                if (!protectedDay) {
+                    currentStreak = 0;
+                }
+            }
+
+            GoalStorage.saveCurrentStreak(context, currentStreak);
+            GoalStorage.saveBestStreak(context, bestStreak);
+            GoalStorage.saveLastProcessedDate(context, dateKey);
+
+            day = day.plusDays(1);
+        }
+    }
+
+    public static int getCurrentStreak(
+            JSONObject history,
+            android.content.Context context) {
+
+        updateStreak(history, context);
+        return GoalStorage.getCurrentStreak(context);
+    }
+
+    public static int getBestStreak(
+            JSONObject history,
+            android.content.Context context) {
+
+        updateStreak(history, context);
+        return GoalStorage.getBestStreak(context);
+    }
+
+
 }
