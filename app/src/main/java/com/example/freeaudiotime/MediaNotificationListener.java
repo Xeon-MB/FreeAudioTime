@@ -79,8 +79,12 @@ public class MediaNotificationListener extends NotificationListenerService {
     private MediaSessionManager.OnActiveSessionsChangedListener sessionsListener;
     private String currentTrackTitle = null;
 
+    private String currentPlaybackId = null;
+
     private long currentTrackDuration = 0;
     private long currentTrackPosition = 0;
+
+    private long maxTrackPosition = 0;
 
     @Override
     public void onListenerConnected() {
@@ -170,6 +174,8 @@ public class MediaNotificationListener extends NotificationListenerService {
                 savePlaybackHistory();
 
                 currentTrackTitle = null;
+                currentPlaybackId = null;
+                maxTrackPosition = 0;
 
                 refreshSessions();
             }
@@ -243,7 +249,8 @@ public class MediaNotificationListener extends NotificationListenerService {
 
     private void saveElapsedTime() {
 
-        if (!isPlaying || currentTrackTitle == null) {
+        if (!isPlaying || currentTrackTitle == null ||
+                currentPlaybackId == null) {
             return;
         }
 
@@ -273,6 +280,7 @@ public class MediaNotificationListener extends NotificationListenerService {
 
             session.put("title", currentTrackTitle);
             session.put("artist", trackArtists.get(currentTrackTitle));
+            session.put("playbackId", currentPlaybackId);
             session.put("duration", elapsed / 1000);
 
             playbackSessions.put(session);
@@ -294,9 +302,33 @@ public class MediaNotificationListener extends NotificationListenerService {
 
         int playbackState = state.getState();
 
+        long currentPosition = state.getPosition();
+
+        if (currentPlaybackId != null &&
+                currentTrackDuration > 0 &&
+                maxTrackPosition >= currentTrackDuration * 0.5 &&
+                currentPosition <= 5000 &&
+                maxTrackPosition > currentPosition + 10000) {
+
+            saveElapsedTime();
+            savePlaybackHistory();
+
+            currentPlaybackId = UUID.randomUUID().toString();
+            maxTrackPosition = 0;
+            playbackStartTime = SystemClock.elapsedRealtime();
+
+            Log.d(TAG, "Nova reprodução detectada: música reiniciada!");
+        } else if (currentPosition > maxTrackPosition) {
+            maxTrackPosition = currentPosition;
+        }
+
         if (playbackState == PlaybackState.STATE_PLAYING) {
 
             if (!isPlaying) {
+
+                if (currentPlaybackId == null) {
+                    currentPlaybackId = UUID.randomUUID().toString();
+                }
 
                 playbackStartTime = SystemClock.elapsedRealtime();
                 isPlaying = true;
@@ -307,20 +339,21 @@ public class MediaNotificationListener extends NotificationListenerService {
             }
 
         } else {
-
             if (isPlaying) {
-
                 saveElapsedTime();
-
                 isPlaying = false;
-
                 stopPeriodicSave();
-
                 savePlaybackHistory();
 
                 Log.d(TAG, "Contagem pausada!");
                 Log.d(TAG, "Tempo acumulado: " +
                         accumulatedTime / 1000 + " segundos");
+            }
+
+            if (playbackState == PlaybackState.STATE_STOPPED ||
+                    playbackState == PlaybackState.STATE_NONE) {
+                currentPlaybackId = null;
+                Log.d(TAG, "Reprodução encerrada!");
             }
         }
     }
@@ -523,11 +556,17 @@ public class MediaNotificationListener extends NotificationListenerService {
             saveElapsedTime();
             savePlaybackHistory();
 
+            currentPlaybackId = null;
+
+            maxTrackPosition = 0;
+
             currentTrackTitle = title;
 
             Log.d(TAG, "Nova faixa: " + currentTrackTitle);
 
             if (isPlaying) {
+                currentPlaybackId = UUID.randomUUID().toString();
+                maxTrackPosition = 0;
                 playbackStartTime = SystemClock.elapsedRealtime();
             }
         }
@@ -616,19 +655,21 @@ public class MediaNotificationListener extends NotificationListenerService {
             savePlaybackHistory();
         }
 
+        currentPlaybackId = null;
+        maxTrackPosition = 0;
+
         if (currentController != null && controllerCallback != null) {
 
             currentController.unregisterCallback(controllerCallback);
 
             currentController = null;
 
-            Log.d(TAG, "Monitoramento da sessão encerrado.");
+            Log.d(TAG, "Monitoramento da sessão encerrada.");
         }
     }
 
     @Override
     public void onListenerDisconnected() {
-
         if (isPlaying) {
             saveElapsedTime();
             isPlaying = false;
@@ -638,18 +679,18 @@ public class MediaNotificationListener extends NotificationListenerService {
         savePlaybackHistory();
 
         if (manager != null && sessionsListener != null) {
-            manager.removeOnActiveSessionsChangedListener(
-                    sessionsListener
-            );
+            manager.removeOnActiveSessionsChangedListener(sessionsListener);
         }
 
         unregisterCurrentController();
 
-        super.onListenerDisconnected();
+        currentTrackTitle = null;
+        currentPlaybackId = null;
+        maxTrackPosition = 0;
 
+        super.onListenerDisconnected();
         Log.d(TAG, "Serviço desconectado!");
     }
-
 
     private void salvarDadosMusica(MediaMetadata metadata, String title, String artist) {
 
