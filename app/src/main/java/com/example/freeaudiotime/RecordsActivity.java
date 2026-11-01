@@ -14,7 +14,8 @@ import android.widget.EditText;
 import android.widget.Button;
 import android.widget.Toast;
 import android.view.View;
-
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -40,6 +41,7 @@ public class RecordsActivity extends AppCompatActivity {
 
     private void carregarRecordes() {
         JSONObject history = PlaybackStorage.load(this);
+        AchievementManager.checkAchievements(this, history);
         carregarProgressoMetas(history);
 
         String bestDay = PlaybackStatistics.getBestDay(history);
@@ -50,7 +52,7 @@ public class RecordsActivity extends AppCompatActivity {
         int protections =
                 GoalStorage.getProtectionsRemaining(this);
         long totalTime = history.optLong("totalTime", 0);
-        carregarConquistas(totalTime);
+        carregarConquistas();
         long nextMilestone = PlaybackStatistics.getNextMilestone(totalTime);
         String mostPlayedArtist = PlaybackStatistics.getMostPlayedArtist(history);
         String mostPlayedTrack = PlaybackStatistics.getMostPlayedTrack(history);
@@ -126,54 +128,198 @@ public class RecordsActivity extends AppCompatActivity {
             return data;
         }
     }
-    private void carregarConquistas(long totalTime) {
+    private void carregarConquistas() {
 
-        LinearLayout container = findViewById(R.id.achievementsContainer);
+        LinearLayout container =
+                findViewById(R.id.achievementsContainer);
 
         if (container == null) return;
 
         container.removeAllViews();
 
-        String[] nomes = {
-                "Primeiras 10 horas",
-                "50 horas de música",
-                "100 horas de música",
-                "Lenda musical"
+        JSONObject desbloqueadas = AchievementStorage.load(this);
+
+        String[][] ids = {
+                {
+                        "first_10_hours", "hours_50", "hours_100",
+                        "hours_500", "hours_1000"
+                },
+                {
+                        "streak_3", "streak_7", "streak_30", "streak_100"
+                },
+                {
+                        "artists_5", "artists_10", "artists_25",
+                        "tracks_10", "tracks_50", "tracks_100"
+                },
+                {
+                        "listening_days_7", "listening_days_30",
+                        "listening_days_100"
+                },
+                {
+                        "daily_goal_7_days", "monthly_goal"
+                }
         };
 
-        String[] descricoes = {
-                "Você começou sua jornada musical!",
-                "Já são 50 horas de reprodução.",
-                "100 horas acompanhadas. Impressionante!",
-                "500 horas de música. Uma verdadeira lenda!"
+        String[][] nomes = {
+                {
+                        "Primeiras 10 horas", "50 horas de música",
+                        "100 horas de música", "Lenda musical",
+                        "1.000 horas de música"
+                },
+                {
+                        "3 dias de sequência", "7 dias de sequência",
+                        "30 dias de sequência", "100 dias de sequência"
+                },
+                {
+                        "Conhecendo artistas", "Explorador musical",
+                        "Colecionador de artistas", "10 músicas diferentes",
+                        "50 músicas diferentes", "100 músicas diferentes"
+                },
+                {
+                        "Uma semana ouvindo", "30 dias de música",
+                        "100 dias de música"
+                },
+                {
+                        "7 dias cumprindo a meta",
+                        "Meta mensal alcançada"
+                }
         };
 
-        long[] metas = {
-                10 * 3600L,
-                50 * 3600L,
-                100 * 3600L,
-                500 * 3600L
+        String[][] descricoes = {
+                {
+                        "Você começou sua jornada musical!",
+                        "Já são 50 horas de reprodução.",
+                        "100 horas acompanhadas!",
+                        "500 horas de música!",
+                        "Você chegou a mil horas!"
+                },
+                {
+                        "Sua primeira sequência!",
+                        "Uma semana de dedicação!",
+                        "Um mês mantendo a sequência!",
+                        "Uma sequência impressionante!"
+                },
+                {
+                        "Você ouviu 5 artistas diferentes.",
+                        "Você conheceu 10 artistas.",
+                        "Já ouviu 25 artistas diferentes.",
+                        "Você ouviu 10 faixas diferentes.",
+                        "Você ouviu 50 faixas diferentes.",
+                        "Você ouviu 100 faixas diferentes."
+                },
+                {
+                        "Você ouviu música em 7 dias diferentes.",
+                        "Você ouviu música em 30 dias diferentes.",
+                        "Você ouviu música em 100 dias diferentes."
+                },
+                {
+                        "Você atingiu sua meta diária em 7 dias do mês.",
+                        "Você alcançou sua meta mensal de reprodução."
+                }
         };
 
-        String[] icones = {"🎧", "🌟", "💚", "👑"};
+        String[][] icones = {
+                {"🎧", "🌟", "💚", "👑", "🚀"},
+                {"🔥", "⚡", "🏆", "💎"},
+                {"🎨", "🧭", "🌎", "🎵", "🎼", "🎹"},
+                {"📅", "🗓️", "⏳"},
+                {"🎯", "🏅"}
+        };
 
-        for (int i = 0; i < metas.length; i++) {
+        String[] categorias = {
+                "TEMPO DE REPRODUÇÃO",
+                "SEQUÊNCIAS",
+                "DESCOBERTAS",
+                "CONSISTÊNCIA",
+                "METAS"
+        };
 
-            boolean desbloqueada = totalTime >= metas[i];
+        for (int c = 0; c < categorias.length; c++) {
+
+            int totalDesbloqueadas = 0;
+
+            for (String id : ids[c]) {
+                if (desbloqueadas.has(id)) {
+                    totalDesbloqueadas++;
+                }
+            }
+
+            adicionarCategoria(
+                    container,
+                    categorias[c],
+                    totalDesbloqueadas,
+                    ids[c],
+                    nomes[c],
+                    descricoes[c],
+                    icones[c],
+                    desbloqueadas
+            );
+        }
+    }
+
+    private void adicionarCategoria(
+            LinearLayout container,
+            String nome,
+            int desbloqueadas,
+            String[] ids,
+            String[] nomes,
+            String[] descricoes,
+            String[] icones,
+            JSONObject dados
+    ) {
+
+        LinearLayout categoria = new LinearLayout(this);
+        categoria.setOrientation(LinearLayout.VERTICAL);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(16), dp(15), dp(16), dp(15));
+
+        GradientDrawable headerBackground = new GradientDrawable();
+        headerBackground.setColor(cor(R.color.card_yellow));
+        headerBackground.setCornerRadius(dp(14));
+        header.setBackground(headerBackground);
+
+        TextView titulo = new TextView(this);
+        titulo.setText(nome + "  (" + desbloqueadas + "/" + ids.length + ")");
+        titulo.setTextSize(13);
+        titulo.setTypeface(null, Typeface.BOLD);
+        titulo.setTextColor(cor(R.color.text_primary));
+
+        TextView seta = new TextView(this);
+        seta.setText("▼");
+        seta.setTextSize(14);
+        seta.setTypeface(null, Typeface.BOLD);
+        seta.setTextColor(cor(R.color.text_primary));
+
+        header.addView(titulo, new LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1
+        ));
+
+        header.addView(seta);
+
+        LinearLayout conteudo = new LinearLayout(this);
+        conteudo.setOrientation(LinearLayout.VERTICAL);
+        conteudo.setPadding(dp(8), dp(10), dp(8), dp(4));
+        conteudo.setVisibility(View.GONE);
+
+        for (int i = 0; i < ids.length; i++) {
+
+            boolean liberada = dados.has(ids[i]);
 
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
-            card.setPadding(dp(18), dp(15), dp(18), dp(15));
+            card.setPadding(dp(16), dp(14), dp(16), dp(14));
 
-            GradientDrawable background = new GradientDrawable();
-            background.setColor(
-                    desbloqueada
-                            ? cor(R.color.card_light)
-                            : cor(R.color.card_yellow)
-            );
-            background.setCornerRadius(dp(16));
-
-            card.setBackground(background);
+            GradientDrawable cardBackground = new GradientDrawable();
+            cardBackground.setColor(cor(
+                    liberada ? R.color.card_light : R.color.card_yellow
+            ));
+            cardBackground.setCornerRadius(dp(14));
+            card.setBackground(cardBackground);
 
             LinearLayout.LayoutParams cardParams =
                     new LinearLayout.LayoutParams(
@@ -181,14 +327,14 @@ public class RecordsActivity extends AppCompatActivity {
                             LinearLayout.LayoutParams.WRAP_CONTENT
                     );
 
-            cardParams.bottomMargin = dp(10);
+            cardParams.bottomMargin = dp(8);
             card.setLayoutParams(cardParams);
 
-            TextView titulo = new TextView(this);
-            titulo.setText(icones[i] + "  " + nomes[i]);
-            titulo.setTextSize(16);
-            titulo.setTextColor(cor(R.color.text_primary));
-            titulo.setTypeface(null, Typeface.BOLD);
+            TextView nomeConquista = new TextView(this);
+            nomeConquista.setText(icones[i] + "  " + nomes[i]);
+            nomeConquista.setTextSize(15);
+            nomeConquista.setTypeface(null, Typeface.BOLD);
+            nomeConquista.setTextColor(cor(R.color.text_primary));
 
             TextView descricao = new TextView(this);
             descricao.setText(descricoes[i]);
@@ -196,16 +342,29 @@ public class RecordsActivity extends AppCompatActivity {
             descricao.setTextColor(cor(R.color.text_secondary));
 
             TextView status = new TextView(this);
-            status.setText(
-                    desbloqueada ? "✓ DESBLOQUEADA" : "🔒 BLOQUEADA"
-            );
-            status.setTextSize(10);
+
+            if (liberada) {
+                long timestamp = dados.optLong(ids[i]);
+
+                String data = new SimpleDateFormat(
+                        "dd/MM/yyyy",
+                        new Locale("pt", "BR")
+                ).format(new Date(timestamp));
+
+                status.setText("✓ DESBLOQUEADA EM " + data);
+            } else {
+                status.setText("🔒 BLOQUEADA");
+            }
+
+            status.setTextSize(11);
             status.setTypeface(null, Typeface.BOLD);
-            status.setTextColor(
-                    desbloqueada
-                            ? cor(R.color.text_secondary)
-                            : cor(R.color.text_yellow)
-            );
+            status.setTextColor(cor(R.color.text_primary));
+            status.setPadding(dp(10), dp(7), dp(10), dp(7));
+
+            GradientDrawable statusBackground = new GradientDrawable();
+            statusBackground.setColor(cor(R.color.card_yellow));
+            statusBackground.setCornerRadius(dp(8));
+            status.setBackground(statusBackground);
 
             LinearLayout.LayoutParams statusParams =
                     new LinearLayout.LayoutParams(
@@ -213,14 +372,38 @@ public class RecordsActivity extends AppCompatActivity {
                             LinearLayout.LayoutParams.WRAP_CONTENT
                     );
 
-            statusParams.topMargin = dp(8);
+            statusParams.topMargin = dp(10);
 
-            card.addView(titulo);
+            card.addView(nomeConquista);
             card.addView(descricao);
             card.addView(status, statusParams);
 
-            container.addView(card);
+            conteudo.addView(card);
         }
+
+        header.setOnClickListener(v -> {
+            if (conteudo.getVisibility() == View.GONE) {
+                conteudo.setVisibility(View.VISIBLE);
+                seta.setText("▲");
+            } else {
+                conteudo.setVisibility(View.GONE);
+                seta.setText("▼");
+            }
+        });
+
+        LinearLayout.LayoutParams categoriaParams =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+
+        categoriaParams.bottomMargin = dp(12);
+
+        categoria.setLayoutParams(categoriaParams);
+        categoria.addView(header);
+        categoria.addView(conteudo);
+
+        container.addView(categoria);
     }
 
     private int dp(int valor) {

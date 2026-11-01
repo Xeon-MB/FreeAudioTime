@@ -303,6 +303,48 @@
 
     </LinearLayout>
 
+    <!-- CONQUISTAS DO PERÍODO -->
+    <LinearLayout
+        android:id="@+id/shareAchievementsSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="UNLOCKED ACHIEVEMENTS"
+                android:textColor="#B7FF00"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:background="#B7FF00" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/shareAchievements"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="vertical"
+            android:padding="12dp"
+            android:background="#111511" />
+
+    </LinearLayout>
+
     <!-- TOP MÚSICAS -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -345,6 +387,48 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:orientation="vertical" />
+
+    </LinearLayout>
+
+    <!-- CONQUISTAS DO PERÍODO -->
+    <LinearLayout
+        android:id="@+id/shareAchievementsSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="UNLOCKED ACHIEVEMENTS"
+                android:textColor="#B7FF00"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:background="#B7FF00" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/shareAchievements"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="vertical"
+            android:padding="12dp"
+            android:background="#111511" />
 
     </LinearLayout>
 
