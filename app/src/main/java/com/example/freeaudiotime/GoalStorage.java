@@ -1,4 +1,3 @@
-
 package com.example.freeaudiotime;
 
 import android.content.Context;
@@ -113,23 +112,6 @@ public class GoalStorage {
                 MONTHLY_PROTECTIONS
         );
     }
-
-    public static boolean useProtection(Context context) {
-        int remaining = getProtectionsRemaining(context);
-
-        if (remaining <= 0) {
-            return false;
-        }
-
-        getPreferences(context)
-                .edit()
-                .putInt("protections_remaining", remaining - 1)
-                .apply();
-
-        return true;
-    }
-
-
     // INÍCIO OFICIAL DO SISTEMA DE SEQUÊNCIA
 
     public static void initializeStreak(Context context) {
@@ -175,12 +157,6 @@ public class GoalStorage {
                 .putString("streak_last_processed_date", date)
                 .apply();
     }
-
-    public static String getLastValidDate(Context context) {
-        return getPreferences(context)
-                .getString("streak_last_valid_date", "");
-    }
-
     public static void saveLastValidDate(
             Context context, String date) {
 

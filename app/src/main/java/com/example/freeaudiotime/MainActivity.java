@@ -1,4 +1,3 @@
-
 package com.example.freeaudiotime;
 
 import android.os.Bundle;
@@ -271,11 +270,6 @@ public class MainActivity extends AppCompatActivity {
         Log.d("AudioTime", "Música mais tocada: " + mostPlayedTrack);
         Log.d("AudioTime", "Ranking de músicas: " + topTracks);
     }
-
-
-
-
-
     private String formatarTempo(long segundos) {
 
         long horas = segundos / 3600;
@@ -292,7 +286,6 @@ public class MainActivity extends AppCompatActivity {
 
         return segundosRestantes + "s";
     }
-
     private void atualizarProgresso() {
 
         android.content.SharedPreferences prefs =

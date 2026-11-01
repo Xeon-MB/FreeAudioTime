@@ -1,4 +1,3 @@
-
 package com.example.freeaudiotime;
 
 import android.content.Context;
@@ -22,7 +21,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.text.Normalizer;
 
 public class DeezerService {
 
@@ -67,7 +65,6 @@ public class DeezerService {
                     artist.replaceAll("[^a-zA-Z0-9]", "_") + ".png";
 
             File arquivoCache = new File(cacheDir, nomeArquivo);
-
 
 
             // Primeiro tenta carregar a imagem salva.
@@ -324,15 +321,4 @@ public class DeezerService {
         });
     }
 
-    private static String normalizarTexto(String texto) {
-        if (texto == null) return "";
-
-        return Normalizer.normalize(
-                        texto,
-                        Normalizer.Form.NFD
-                )
-                .replaceAll("\\p{M}+", "")
-                .toLowerCase(java.util.Locale.ROOT)
-                .replaceAll("[^a-z0-9]", "");
-    }
 }

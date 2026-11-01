@@ -243,58 +243,6 @@ public class PlaybackStatistics {
 
         return total;
     }
-
-    public static String getYearlyTopMonth(JSONObject history) {
-
-        Map<String, Long> dailyTotals = getDailyTotals(history);
-
-        int currentYear = java.time.LocalDate.now().getYear();
-
-        Map<Integer, Long> monthlyTotals = new HashMap<>();
-
-        for (Map.Entry<String, Long> entry : dailyTotals.entrySet()) {
-
-            String date = entry.getKey();
-
-            if (date.length() < 10) continue;
-
-            try {
-                int year = Integer.parseInt(date.substring(0, 4));
-                int month = Integer.parseInt(date.substring(5, 7));
-
-                if (year == currentYear) {
-                    monthlyTotals.put(
-                            month,
-                            monthlyTotals.getOrDefault(month, 0L)
-                                    + entry.getValue()
-                    );
-                }
-
-            } catch (NumberFormatException ignored) {
-            }
-        }
-
-        if (monthlyTotals.isEmpty()) {
-            return "Nenhum mês";
-        }
-
-        int topMonth = 0;
-        long topTime = 0;
-
-        for (Map.Entry<Integer, Long> entry : monthlyTotals.entrySet()) {
-            if (entry.getValue() > topTime) {
-                topMonth = entry.getKey();
-                topTime = entry.getValue();
-            }
-        }
-
-        java.time.Month month = java.time.Month.of(topMonth);
-
-        return month.getDisplayName(
-                java.time.format.TextStyle.FULL,
-                new Locale("pt", "BR")
-        );
-    }
     public static String getMostPlayedArtist(JSONObject history) {
 
         JSONArray sessions = getUniqueSessions(history);

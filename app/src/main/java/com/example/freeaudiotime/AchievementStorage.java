@@ -3,7 +3,6 @@ package com.example.freeaudiotime;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 

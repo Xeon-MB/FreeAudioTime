@@ -43,10 +43,4 @@ public class ThemeManager {
                         : AppCompatDelegate.MODE_NIGHT_NO
         );
     }
-
-    public static boolean isDarkMode(Context context) {
-        return context.getSharedPreferences(
-                PREFS, Context.MODE_PRIVATE
-        ).getBoolean(DARK_MODE, true);
-    }
 }

@@ -35,10 +35,6 @@
     import android.graphics.Typeface;
     import java.time.Instant;
     import java.time.ZoneId;
-
-    
-    
-    
     import androidx.appcompat.app.AppCompatActivity;
     
     
@@ -927,10 +923,10 @@
             mostrarRankingNaImagem(shareTopTracks);
             carregarConquistasNaImagem(arte);
 
-// Aplica a cor do artista aos textos verdes
+        // Aplica a cor do artista aos textos verdes
             aplicarCorDestaqueNosTextos(arte);
 
-// Renderização
+        // Renderização
             int largura = dp(360);
     
             int larguraSpec = View.MeasureSpec.makeMeasureSpec(
@@ -1839,4 +1835,3 @@
         }
     
         }
-    
