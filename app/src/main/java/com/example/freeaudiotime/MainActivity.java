@@ -24,8 +24,12 @@ import android.os.SystemClock;
 import android.provider.Settings;
 import android.content.ComponentName;
 import androidx.appcompat.app.AlertDialog;
-
 import android.content.Intent;
+import android.net.Uri;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -33,6 +37,8 @@ import android.widget.Toast;
 import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
+
+    private ActivityResultLauncher<Intent> folderPicker;
 
     private final Runnable progressRunnable = new Runnable() {
         @Override
@@ -59,12 +65,64 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         ThemeManager.applySavedTheme(this);
         super.onCreate(savedInstanceState);
 
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
         Button refreshButton = findViewById(R.id.refreshButton);
+
+        currentTrackProgress = findViewById(R.id.currentTrackProgress);
+        currentTrackElapsed = findViewById(R.id.currentTrackElapsed);
+        currentTrackRemaining = findViewById(R.id.currentTrackRemaining);
+
+        folderPicker = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+
+                    if (result.getResultCode() == RESULT_OK
+                            && result.getData() != null) {
+
+                        Uri uri = result.getData().getData();
+
+                        if (uri != null) {
+                            PlaybackStorage.setFolder(this, uri);
+
+                            if (PlaybackStorage.hasFolder(this)) {
+                                carregarEstatisticas();
+
+                                Toast.makeText(
+                                        this,
+                                        "Armazenamento configurado!",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                            } else {
+                                Toast.makeText(
+                                        this,
+                                        "Não foi possível configurar a pasta.",
+                                        Toast.LENGTH_LONG
+                                ).show();
+                            }
+                        }
+
+                    } else {
+                        carregarEstatisticas();
+                    }
+
+                    iniciarVerificacaoNotificacao();
+                }
+        );
+
+        if (!PlaybackStorage.hasFolder(this)) {
+            mostrarConfiguracaoArmazenamento();
+        } else {
+            carregarEstatisticas();
+            iniciarVerificacaoNotificacao();
+        }
+
+        // Mantenha aqui os demais listeners e configurações.
 
         refreshButton.setOnClickListener(v -> {
             carregarEstatisticas();
@@ -101,7 +159,6 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
-        carregarEstatisticas();
 
         Button openRecap = findViewById(R.id.openRecap);
 
@@ -121,7 +178,12 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        verificarPermissaoNotificacao();
+    }
+
+    private void iniciarVerificacaoNotificacao() {
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            verificarPermissaoNotificacao();
+        }, 400);
     }
 
     @Override
@@ -383,5 +445,40 @@ public class MainActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .show();
     }
+
+
+    private void mostrarConfiguracaoArmazenamento() {
+
+        new AlertDialog.Builder(this)
+                .setTitle("Bem-vindo ao FreeAudioTime!")
+                .setMessage(
+                        "Antes de começar, precisamos configurar onde " +
+                                "seu histórico de reprodução será salvo.\n\n" +
+
+                                "📁 Local: Documentos/FreeAudioTime\n\n" +
+
+                                "Se a pasta não existir, o aplicativo irá criá-la " +
+                                "automaticamente.\n\n" +
+
+                                "Se você trocar de celular ou reinstalar o aplicativo, " +
+                                "poderá selecionar essa mesma pasta para recuperar " +
+                                "suas estatísticas.\n\n" +
+
+                                "Seus dados ficam armazenados no próprio dispositivo."
+                )
+                .setPositiveButton("Escolher pasta", (dialog, which) -> {
+                    Intent intent = new Intent(
+                            Intent.ACTION_OPEN_DOCUMENT_TREE
+                    );
+
+                    folderPicker.launch(intent);
+                })
+                .setNegativeButton("Agora não", (dialog, which) -> {
+                    carregarEstatisticas();
+                })
+                .setCancelable(false)
+                .show();
+    }
+
 
 }
