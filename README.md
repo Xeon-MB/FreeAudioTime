@@ -83,7 +83,7 @@ Ao abrir o F-Droid pela primeira vez, aguarde o aplicativo buscar os repositóri
 ### Passo 4: Acessar Repositórios
 Na tela principal do F-Droid, toque no ícone da caixa (gerenciador de repositórios) no menu superior.
 
-![Acessar Repositórios](images/04..jpg)
+![Acessar Repositórios](images/04..png)
 
 ---
 
