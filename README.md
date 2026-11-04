@@ -59,6 +59,20 @@ GitHub: https://github.com/Xeon-MB
 
 ## Tutorial de Instalação e Configuração
 
+## Tutorial em vídeo
+
+Clique na imagem abaixo para assistir ao tutorial de instalação e configuração do FreeAudioTime.
+
+<p align="center">
+  <a href="https://youtu.be/QhhEblQsE8Y">
+    <img src="images/tutorial-thumbnail.png"
+         alt="Tutorial FreeAudioTime"
+         width="500">
+  </a>
+</p>
+
+---
+
 ### Passo 1: Baixar o F-Droid
 Acesse o site oficial do F-Droid e toque no botão "BAIXAR O F-DROID".
 
