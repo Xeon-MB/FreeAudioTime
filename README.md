@@ -195,5 +195,4 @@ No painel principal do app, observe o aviso de permissão necessária e toque no
 ### Passo 20: Conceder acesso às notificações
 Nas configurações do sistema Android ("Acessar notificações"), encontre o FreeAudioTime e ative a chave correspondente.
 
-![Conceder acesso às notificações](images/20.png]
-)
+![Conceder acesso às notificações](images/20.png)
