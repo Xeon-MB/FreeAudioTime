@@ -62,7 +62,7 @@ GitHub: https://github.com/Xeon-MB
 ### Passo 1: Baixar o F-Droid
 Acesse o site oficial do F-Droid e toque no botão "BAIXAR O F-DROID".
 
-![Baixar o F-Droid](images/01.jpg)
+![Baixar o F-Droid](images/01.png)
 
 ---
 
@@ -104,7 +104,7 @@ Selecione a opção "Digitar URL do repositório manualmente".
 ### Passo 7: Inserir a URL do repositório
 Cole a URL do repositório do FreeAudioTime no campo indicado e toque em "Adicionar".
 
-![Inserir a URL do repositório](images/07.jpg)
+![Inserir a URL do repositório](images/07.png)
 
 ---
 
@@ -195,4 +195,5 @@ No painel principal do app, observe o aviso de permissão necessária e toque no
 ### Passo 20: Conceder acesso às notificações
 Nas configurações do sistema Android ("Acessar notificações"), encontre o FreeAudioTime e ative a chave correspondente.
 
-![Conceder acesso às notificações](images/20.jpg)
+![Conceder acesso às notificações](images/20.png]
+)
