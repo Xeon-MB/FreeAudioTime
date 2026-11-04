@@ -289,13 +289,13 @@ public class PlaybackStatistics {
 
     public static String getMostPlayedTrack(JSONObject history) {
 
-        JSONArray sessions = getUniqueSessions(history);
+        JSONArray sessions = history.optJSONArray("sessions");
 
         if (sessions == null) {
             return "Nenhuma música";
         }
 
-        Map<String, Long> trackTimes = new HashMap<>();
+        Map<String, Set<String>> trackPlays = new HashMap<>();
 
         for (int i = 0; i < sessions.length(); i++) {
 
@@ -307,27 +307,28 @@ public class PlaybackStatistics {
 
             String title = session.optString("title", "");
             String artist = session.optString("artist", "");
-            long duration = session.optLong("duration", 0);
+            String playbackId = session.optString("playbackId", "");
 
-            if (title.isEmpty() || duration <= 0) {
+            if (title.isEmpty() || playbackId.isEmpty()) {
                 continue;
             }
 
-            String trackKey = title + " - " + artist;
+            String trackKey = title + "\n" + artist;
 
-            long previous = trackTimes.getOrDefault(trackKey, 0L);
-
-            trackTimes.put(trackKey, previous + duration);
+            trackPlays.putIfAbsent(trackKey, new HashSet<>());
+            trackPlays.get(trackKey).add(playbackId);
         }
 
         String mostPlayedTrack = "Nenhuma música";
-        long highestTime = 0;
+        int highestPlays = 0;
 
-        for (String track : trackTimes.keySet()) {
+        for (Map.Entry<String, Set<String>> track : trackPlays.entrySet()) {
 
-            if (trackTimes.get(track) > highestTime) {
-                highestTime = trackTimes.get(track);
-                mostPlayedTrack = track;
+            int plays = track.getValue().size();
+
+            if (plays > highestPlays) {
+                highestPlays = plays;
+                mostPlayedTrack = track.getKey().replace("\n", " - ");
             }
         }
 
