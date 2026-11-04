@@ -1,76 +1,58 @@
-# 🎧 FreeAudioTime
+# FreeAudioTime
 
-**Acompanhe seu tempo ouvindo música. Descubra seus hábitos musicais e registre sua jornada sonora.**
+**Acompanhe quanto tempo você passa ouvindo música e outros conteúdos de áudio.**
 
-O FreeAudioTime é um aplicativo Android que monitora o tempo de reprodução de músicas em diferentes serviços de streaming, organiza seu histórico e transforma seus hábitos musicais em estatísticas, recaps e conquistas.
+O FreeAudioTime é um aplicativo Android desenvolvido em Java que registra o tempo de reprodução de áudio de aplicativos compatíveis, permitindo acompanhar o tempo total de reprodução e o tempo dedicado a cada faixa.
 
-## ✨ Funcionalidades
+## Funcionalidades
 
-- **Monitoramento de reprodução:** acompanha o tempo que você passa ouvindo música.
-- **Histórico musical:** registra músicas, artistas e duração das reproduções.
-- **Estatísticas:** acompanhe seus dados diariamente, semanalmente, mensalmente e anualmente.
-- **Recaps:** retrospectivas visuais com informações sobre seus hábitos musicais.
-- **Metas:** defina objetivos diários e mensais de reprodução.
-- **Conquistas:** desbloqueie conquistas conforme seus hábitos musicais.
-- **Recordes:** acompanhe suas melhores marcas e sequências.
-- **Armazenamento local:** seus dados são salvos no próprio dispositivo.
+- Registro do tempo total de reprodução.
+- Contagem individual do tempo de cada música.
+- Identificação do título e do artista, quando disponíveis.
+- Acompanhamento da reprodução em segundo plano.
+- Armazenamento local dos dados.
 
-## 🎵 Aplicativos compatíveis
+## Instalação
 
-Atualmente, o FreeAudioTime possui compatibilidade testada com:
+O FreeAudioTime possui um repositório próprio no F-Droid.
 
-- Stash
-- Spotify
-- YouTube Music
-- Deezer
-- SoundCloud
-- Amazon Music
-- Apple Music
-- OpenTune
-- Whatlisten
-- Lark Player
+**Endereço do repositório:**
 
-A compatibilidade pode variar conforme a versão do aplicativo de música e o comportamento de suas notificações e sessões de reprodução.
+https://xeon-mb.github.io/FreeAudioTime/repo
 
-## 📱 Requisitos
+### Como instalar pelo F-Droid
 
-- Dispositivo Android.
-- Permissão de acesso às notificações para monitoramento das sessões de mídia.
-- Aplicativo de música compatível instalado no dispositivo.
+1. Instale o [F-Droid](https://f-droid.org/).
+2. Abra as configurações e acesse **Repositórios**.
+3. Adicione o endereço do repositório do FreeAudioTime.
+4. Pesquise por `FreeAudioTime`.
+5. Instale o aplicativo.
 
-## 📥 Instalação
+## Permissões
 
-1. Acesse a seção **Releases** deste repositório.
-2. Baixe o APK da versão desejada.
-3. Abra o arquivo no seu dispositivo Android.
-4. Autorize a instalação, caso necessário.
-5. Conceda a permissão de acesso às notificações para que o monitoramento funcione.
+O aplicativo utiliza o acesso às notificações para identificar sessões de mídia e obter informações sobre o conteúdo reproduzido.
 
-## 🔒 Privacidade
+Para funcionar corretamente, é necessário conceder a permissão de acesso às notificações nas configurações do Android.
 
-O FreeAudioTime utiliza o acesso às notificações e sessões de mídia para identificar informações sobre as reproduções.
-
-O histórico é armazenado localmente no dispositivo. Consulte a documentação e o código-fonte para conhecer os detalhes do tratamento dos dados.
-
-## 🚧 Desenvolvimento
-
-O projeto continua em desenvolvimento. Algumas funcionalidades futuras incluem:
-
-- Personalização visual das recaps.
-- Integração entre estatísticas do PC e do celular.
-- Criação de playlists a partir de artistas selecionados.
-
-## 🛠️ Tecnologias
+## Tecnologias utilizadas
 
 - Java
 - Android Studio
 - Android SDK
-- JSON para armazenamento local
+- MediaSessionManager
+- NotificationListenerService
+- Git e GitHub
 
-## 👨‍💻 Autor
+## Distribuição
 
-Desenvolvido por **Xeon-MB**.
+O aplicativo é distribuído por meio de um repositório F-Droid próprio, hospedado no GitHub Pages.
+
+## Desenvolvedor
+
+**Xeon-MB**
+
+GitHub: https://github.com/Xeon-MB
 
 ---
 
-*FreeAudioTime — Your music, your time.*
+*FreeAudioTime — Conheça melhor seu tempo de áudio.*
