@@ -4,6 +4,27 @@
 
 O FreeAudioTime é um aplicativo Android desenvolvido em Java que registra o tempo de reprodução de áudio de aplicativos compatíveis, permitindo acompanhar o tempo total de reprodução e o tempo dedicado a cada faixa.
 
+## Sumário
+
+- [Funcionalidades](#funcionalidades)
+- [Instalação](#instalação)
+  - [Como instalar pelo F-Droid](#como-instalar-pelo-f-droid)
+- [Permissões](#permissões)
+- [Tecnologias utilizadas](#tecnologias-utilizadas)
+- [Distribuição](#distribuição)
+- [Tutorial de Instalação e Configuração](#tutorial-de-instalação-e-configuração)
+  - [Tutorial em vídeo](#tutorial-em-vídeo)
+  - [Passo a passo (20 passos)](#passo-1-baixar-o-f-droid)
+- [Solução de problemas](#solução-de-problemas)
+  - [1. Acesso a notificações](#1-acesso-a-notificações-obrigatório)
+  - [2. Economia de bateria](#2-economia-de-bateria)
+  - [3. Início automático](#3-início-automático-xiaomi--redmi--poco)
+  - [4. Travar o app nos recentes](#4-travar-o-app-nos-recentes)
+  - [5. Aplicativo de música compatível](#5-aplicativo-de-música-compatível)
+  - [6. Versão do aplicativo](#6-versão-do-aplicativo)
+  - [Ainda não funcionou?](#ainda-não-funcionou)
+- [Desenvolvedor](#desenvolvedor)
+
 ## Funcionalidades
 
 - Registro do tempo total de reprodução.
@@ -212,7 +233,6 @@ Nas configurações do sistema Android ("Acessar notificações"), encontre o Fr
 ![Conceder acesso às notificações](images/20.png)
 
 ## Solução de problemas
----
 
 Se o FreeAudioTime não estiver identificando a música ou contando o tempo, siga os passos abaixo, na ordem. Os nomes dos menus podem variar conforme o fabricante e a versão do sistema.
 
