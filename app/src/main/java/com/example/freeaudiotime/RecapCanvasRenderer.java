@@ -419,31 +419,32 @@ public class RecapCanvasRenderer {
             if (elem.isHideIfMissing()) return;
         }
 
+        float scale = canvas.getWidth() / 360f;
         TextPaint headerPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         headerPaint.setColor(accentColor);
-        headerPaint.setTextSize(11f * (canvas.getWidth() / 360f));
+        headerPaint.setTextSize(11f * scale);
         headerPaint.setFakeBoldText(true);
-        canvas.drawText("ALSO IN ROTATION", x + 10, y + 25, headerPaint);
+        canvas.drawText("ALSO IN ROTATION", x + 10 * scale, y + 30 * scale, headerPaint);
 
         if (data == null) return;
-        float rowY = y + 55;
+        float rowY = y + 72 * scale;
         TextPaint posPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         posPaint.setColor(accentColor);
-        posPaint.setTextSize(14f * (canvas.getWidth() / 360f));
+        posPaint.setTextSize(14f * scale);
         posPaint.setFakeBoldText(true);
 
         TextPaint namePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         namePaint.setColor(textColor);
-        namePaint.setTextSize(12f * (canvas.getWidth() / 360f));
+        namePaint.setTextSize(12f * scale);
         namePaint.setFakeBoldText(true);
 
         for (DynamicRecapData.TopArtistItem artist : data.getSecondaryArtists()) {
-            if (rowY + 30 > y + h) break;
+            if (rowY + 38 * scale > y + h) break;
             String pos = String.format("%02d", artist.rank);
-            canvas.drawText(pos, x + 10, rowY, posPaint);
+            canvas.drawText(pos, x + 10 * scale, rowY, posPaint);
             String info = artist.name.toUpperCase() + (artist.timeFormatted.isEmpty() ? "" : " — " + artist.timeFormatted);
-            canvas.drawText(info, x + 50, rowY, namePaint);
-            rowY += 32;
+            canvas.drawText(info, x + 50 * scale, rowY, namePaint);
+            rowY += 48 * scale;
         }
     }
 
@@ -460,29 +461,30 @@ public class RecapCanvasRenderer {
             if (elem.isHideIfMissing()) return;
         }
 
+        float scale = canvas.getWidth() / 360f;
         TextPaint titlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         titlePaint.setColor(accentColor);
-        titlePaint.setTextSize(13f * (canvas.getWidth() / 360f));
+        titlePaint.setTextSize(13f * scale);
         titlePaint.setFakeBoldText(true);
-        canvas.drawText("YOUR TOP TRACKS", x, y + 20, titlePaint);
+        canvas.drawText("YOUR TOP TRACKS", x, y + 30 * scale, titlePaint);
 
         if (data == null) return;
-        float itemY = y + 45;
-        float itemHeight = 45f * (canvas.getWidth() / 360f);
+        float itemY = y + 70 * scale;
+        float itemHeight = 60f * scale;
 
         TextPaint trackTitlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         trackTitlePaint.setColor(Color.WHITE);
-        trackTitlePaint.setTextSize(11f * (canvas.getWidth() / 360f));
+        trackTitlePaint.setTextSize(11f * scale);
         trackTitlePaint.setFakeBoldText(true);
 
         TextPaint trackArtistPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         trackArtistPaint.setColor(textColor);
-        trackArtistPaint.setTextSize(10f * (canvas.getWidth() / 360f));
+        trackArtistPaint.setTextSize(10f * scale);
 
         for (DynamicRecapData.TopTrackItem track : data.getTopTracks()) {
             if (itemY + itemHeight > y + h) break;
 
-            float thumbSize = itemHeight - 8;
+            float thumbSize = itemHeight - 10 * scale;
             RectF thumbRect = new RectF(x, itemY, x + thumbSize, itemY + thumbSize);
             Bitmap artworkBitmap = null;
             if (track.artworkPath != null && !track.artworkPath.isEmpty() && context != null) {
@@ -504,8 +506,9 @@ public class RecapCanvasRenderer {
                 canvas.drawRect(thumbRect, p);
             }
 
-            canvas.drawText(track.title, x + thumbSize + 15, itemY + 16, trackTitlePaint);
-            canvas.drawText(track.artist + (track.duration.isEmpty() ? "" : " • " + track.duration), x + thumbSize + 15, itemY + 34, trackArtistPaint);
+            canvas.drawText(track.title, x + thumbSize + 18 * scale, itemY + 23 * scale, trackTitlePaint);
+            canvas.drawText(track.artist + (track.duration.isEmpty() ? "" : " • " + track.duration),
+                    x + thumbSize + 18 * scale, itemY + 48 * scale, trackArtistPaint);
             itemY += itemHeight;
         }
     }
@@ -522,22 +525,24 @@ public class RecapCanvasRenderer {
             if (elem.isHideIfMissing()) return;
         }
 
+        float scale = canvas.getWidth() / 360f;
         TextPaint titlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         titlePaint.setColor(accentColor);
-        titlePaint.setTextSize(12f * (canvas.getWidth() / 360f));
+        titlePaint.setTextSize(12f * scale);
         titlePaint.setFakeBoldText(true);
-        canvas.drawText("UNLOCKED ACHIEVEMENTS", x, y + 20, titlePaint);
+        canvas.drawText("UNLOCKED ACHIEVEMENTS", x, y + 30 * scale, titlePaint);
 
         if (data == null) return;
-        float itemY = y + 45;
+        float itemY = y + 72 * scale;
         TextPaint achPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         achPaint.setColor(textColor);
-        achPaint.setTextSize(11f * (canvas.getWidth() / 360f));
+        achPaint.setTextSize(11f * scale);
 
         for (DynamicRecapData.AchievementItem ach : data.getUnlockedAchievements()) {
-            if (itemY + 25 > y + h) break;
-            canvas.drawText("🏆 " + ach.title + " (" + ach.formattedDate + ")", x, itemY, achPaint);
-            itemY += 28;
+            if (itemY + 34 * scale > y + h) break;
+            canvas.drawText("🏆 " + ach.title + " (" + ach.formattedDate + ")",
+                    x, itemY, achPaint);
+            itemY += 46 * scale;
         }
     }
 
