@@ -736,13 +736,15 @@ import android.widget.SeekBar;
 
             ColorWheelView wheel = new ColorWheelView(this);
             wheel.setColor(initialColor);
+            // Start every color selection at full brightness, regardless of the saved color.
+            wheel.setBrightness(1f);
             container.addView(wheel, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     (int) (280 * getResources().getDisplayMetrics().density)
             ));
 
             View preview = new View(this);
-            preview.setBackgroundColor(initialColor);
+            preview.setBackgroundColor(wheel.getColor());
             LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     (int) (38 * getResources().getDisplayMetrics().density)
@@ -760,7 +762,7 @@ import android.widget.SeekBar;
             float[] hsv = new float[3];
             Color.colorToHSV(initialColor, hsv);
             brightness.setMax(100);
-            brightness.setProgress(Math.max(8, Math.round(hsv[2] * 100)));
+            brightness.setProgress(100);
             brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
