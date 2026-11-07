@@ -62,7 +62,7 @@ public class DeezerService {
             }
 
             String nomeArquivo =
-                    artist.replaceAll("[^a-zA-Z0-9]", "_") + ".png";
+                    artist.replaceAll("[^a-zA-Z0-9]", "_") + "_xl.png";
 
             File arquivoCache = new File(cacheDir, nomeArquivo);
 
@@ -123,8 +123,10 @@ public class DeezerService {
                                 JSONObject firstArtist =
                                         artists.getJSONObject(0);
 
-                                String imageUrl =
-                                        firstArtist.optString("picture_big", "");
+                                String imageUrl = firstArtist.optString("picture_xl", "");
+                                if (imageUrl.isEmpty()) {
+                                    imageUrl = firstArtist.optString("picture_big", "");
+                                }
 
                                 if (!imageUrl.isEmpty()) {
                                     URL photoUrl = new URL(imageUrl);
