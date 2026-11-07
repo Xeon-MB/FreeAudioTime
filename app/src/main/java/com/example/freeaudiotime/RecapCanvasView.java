@@ -275,4 +275,23 @@ public class RecapCanvasView extends View {
             templateChangeListener.onTemplateChanged();
         }
     }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+
+        int availableWidth = MeasureSpec.getSize(widthMeasureSpec);
+        int availableHeight = MeasureSpec.getSize(heightMeasureSpec);
+
+        float aspectRatio = 9f / 16f;
+
+        int width = availableWidth;
+        int height = (int) (width / aspectRatio);
+
+        if (height > availableHeight) {
+            height = availableHeight;
+            width = (int) (height * aspectRatio);
+        }
+
+        setMeasuredDimension(width, height);
+    }
 }

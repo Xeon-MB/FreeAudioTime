@@ -36,6 +36,10 @@
     import java.time.Instant;
     import java.time.ZoneId;
     import androidx.appcompat.app.AppCompatActivity;
+    import android.content.Intent;
+    import android.app.AlertDialog;
+    import android.content.Intent;
+    import java.util.List;
     
     
     import java.time.DayOfWeek;
@@ -111,6 +115,14 @@
             dayCalendarButton = findViewById(R.id.dayCalendarButton);
             dayDateInput = findViewById(R.id.dayDateInput);
             dayDateSelector = findViewById(R.id.dayDateSelector);
+
+            findViewById(R.id.openBlankEditorButton).setOnClickListener(v -> {
+                abrirEditorPersonalizado(null);
+            });
+
+            findViewById(R.id.openSavedTemplateButton).setOnClickListener(v -> {
+                mostrarModelosSalvos();
+            });
     
             dayCalendarButton.setOnClickListener(v -> {
                 DatePickerDialog dialog = new DatePickerDialog(
@@ -180,6 +192,40 @@
                 } else {
                     exportacaoPendente = true;
                 }
+            });
+
+            Button customizeRecapButton = findViewById(R.id.customizeRecapButton);
+
+            customizeRecapButton.setOnClickListener(v -> {
+
+                RecapCategory category = RecapCategory.fromPeriodInt(periodoAtual);
+
+                String templateId = TemplateStorage.getDefaultTemplateIdForCategory(
+                        this,
+                        category
+                );
+
+                Intent intent = new Intent(
+                        RecapActivity.this,
+                        RecapEditorActivity.class
+                );
+
+                intent.putExtra(
+                        RecapEditorActivity.EXTRA_TEMPLATE_ID,
+                        templateId
+                );
+
+                intent.putExtra(
+                        RecapEditorActivity.EXTRA_CATEGORY_ID,
+                        category.getId()
+                );
+
+                intent.putExtra(
+                        RecapEditorActivity.EXTRA_DATE_STRING,
+                        dataSelecionada.toString()
+                );
+
+                startActivity(intent);
             });
     
             history = PlaybackStorage.load(this);
@@ -1832,6 +1878,69 @@
                     aplicarCorDestaqueNosTextos(grupo.getChildAt(i));
                 }
             }
+        }
+
+        private void abrirEditorPersonalizado(String templateId) {
+
+            RecapCategory category =
+                    RecapCategory.fromPeriodInt(periodoAtual);
+
+            Intent intent = new Intent(
+                    RecapActivity.this,
+                    RecapEditorActivity.class
+            );
+
+            if (templateId != null) {
+                intent.putExtra(
+                        RecapEditorActivity.EXTRA_TEMPLATE_ID,
+                        templateId
+                );
+            }
+
+            intent.putExtra(
+                    RecapEditorActivity.EXTRA_CATEGORY_ID,
+                    category.getId()
+            );
+
+            intent.putExtra(
+                    RecapEditorActivity.EXTRA_DATE_STRING,
+                    dataSelecionada.toString()
+            );
+
+            startActivity(intent);
+        }
+
+        private void mostrarModelosSalvos() {
+
+            List<RecapTemplate> templates =
+                    TemplateStorage.getAllTemplates(this);
+
+            if (templates == null || templates.isEmpty()) {
+                Toast.makeText(
+                        this,
+                        "Nenhum modelo encontrado.",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                return;
+            }
+
+            String[] nomes = new String[templates.size()];
+
+            for (int i = 0; i < templates.size(); i++) {
+                nomes[i] = templates.get(i).getName();
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Escolher modelo")
+                    .setItems(nomes, (dialog, which) -> {
+
+                        RecapTemplate selected = templates.get(which);
+
+                        abrirEditorPersonalizado(selected.getId());
+                    })
+                    .setNegativeButton("Cancelar", null)
+                    .show();
         }
     
         }

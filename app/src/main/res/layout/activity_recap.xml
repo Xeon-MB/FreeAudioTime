@@ -494,12 +494,42 @@
         </LinearLayout>
 
         <Button
+            android:id="@+id/customizeRecapButton"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="20dp"
+            android:backgroundTint="@color/card_dark"
+            android:text="PERSONALIZAR RETROSPECTIVA"
+            android:textColor="@color/text_on_dark"
+            android:textStyle="bold" />
+
+        <Button
             android:id="@+id/exportRecapButton"
             android:layout_width="match_parent"
             android:layout_height="58dp"
             android:layout_marginTop="20dp"
             android:backgroundTint="@color/card_dark"
             android:text="SALVAR RECAP COMO IMAGEM"
+            android:textColor="@color/text_on_dark"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/openBlankEditorButton"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="12dp"
+            android:backgroundTint="#527A18"
+            android:text="CRIAR RECAP PERSONALIZADO"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/openSavedTemplateButton"
+            android:layout_width="match_parent"
+            android:layout_height="58dp"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="@color/card_dark"
+            android:text="USAR MODELO SALVO"
             android:textColor="@color/text_on_dark"
             android:textStyle="bold" />
 
