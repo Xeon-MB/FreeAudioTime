@@ -136,6 +136,7 @@
             recapData = RecapDataResolver.resolve(this, history, category, selectedDate);
             canvasView.setRecapData(recapData);
             canvasView.setTemplate(currentTemplate);
+            loadMissingTopTrackCovers();
     
             // 4. Fetch Top Artist Image for Dynamic Palette
             String topArtist = recapData.getValue(RecapElementBinding.TOP_ARTIST_NAME);
@@ -331,11 +332,7 @@
     
                 final RecapElementBinding binding = bindings[i];
     
-                String value = recapData.getValue(binding);
-    
-                if (value == null || value.trim().isEmpty()) {
-                    value = "Sem informação disponível";
-                }
+                String value = getDynamicDataPreview(binding);
     
                 android.widget.LinearLayout item =
                         new android.widget.LinearLayout(this);
@@ -380,13 +377,21 @@
     
                     undoRedoManager.pushState(currentTemplate);
     
-                    RecapElementModel element = new RecapElementModel(
-                            binding,
-                            0.10f,
-                            0.40f,
-                            0.80f,
-                            0.08f
-                    );
+                    float x = 0.10f;
+                    float y = 0.40f;
+                    float width = 0.80f;
+                    float height = 0.08f;
+                    switch (binding) {
+                        case TOP_ARTIST_IMAGE:
+                            x = 0.35f; y = 0.12f; width = 0.30f; height = 0.17f; break;
+                        case SECONDARY_ARTISTS_LIST:
+                            y = 0.55f; height = 0.22f; break;
+                        case ACHIEVEMENTS_LIST:
+                            x = 0.08f; y = 0.25f; width = 0.84f; height = 0.48f; break;
+                        case TOP_TRACKS_LIST:
+                            x = 0.05f; y = 0.20f; width = 0.90f; height = 0.52f; break;
+                    }
+                    RecapElementModel element = new RecapElementModel(binding, x, y, width, height);
     
                     element.setFontSizeSp(20f);
                     element.setFontColorHex("#F0EBDD");
@@ -420,6 +425,72 @@
     
     
     
+                private String getDynamicDataPreview(RecapElementBinding binding) {
+            if (recapData == null) return "Dados indisponíveis";
+            StringBuilder preview = new StringBuilder();
+            switch (binding) {
+                case TOP_ARTIST_IMAGE:
+                    String artistName = recapData.getValue(RecapElementBinding.TOP_ARTIST_NAME);
+                    if (artistImage != null && !artistImage.isRecycled()) {
+                        return "Foto carregada: " + artistImage.getWidth() + " × " + artistImage.getHeight() + " px";
+                    }
+                    return artistName != null && !artistName.isEmpty()
+                            && !"NENHUM REGISTRO".equalsIgnoreCase(artistName)
+                            ? "Foto de " + artistName + " (carregando ou aguardando rede)"
+                            : "Nenhum artista encontrado neste período";
+                case SECONDARY_ARTISTS_LIST:
+                    for (DynamicRecapData.TopArtistItem artist : recapData.getSecondaryArtists()) {
+                        preview.append(artist.rank).append(". ").append(artist.name);
+                        if (artist.timeFormatted != null && !artist.timeFormatted.isEmpty()) {
+                            preview.append(" — ").append(artist.timeFormatted);
+                        }
+                        preview.append("\n");
+                    }
+                    break;
+                case ACHIEVEMENTS_LIST:
+                    for (DynamicRecapData.AchievementItem achievement : recapData.getUnlockedAchievements()) {
+                        preview.append("• ").append(achievement.title)
+                                .append(" (").append(achievement.formattedDate).append(")\n");
+                    }
+                    break;
+                case TOP_TRACKS_LIST:
+                    for (DynamicRecapData.TopTrackItem track : recapData.getTopTracks()) {
+                        preview.append("• ").append(track.title).append(" — ").append(track.artist)
+                                .append(track.artworkPath == null || track.artworkPath.isEmpty()
+                                        ? " (capa será buscada)" : " (capa disponível)")
+                                .append("\n");
+                    }
+                    break;
+                default:
+                    String value = recapData.getValue(binding);
+                    if (value != null && !value.trim().isEmpty() && !"—".equals(value.trim())) return value;
+                    return "Sem informação disponível";
+            }
+            return preview.length() == 0
+                    ? "Nenhum registro encontrado para este período"
+                    : preview.toString().trim();
+        }
+
+        private void loadMissingTopTrackCovers() {
+            if (recapData == null) return;
+            for (DynamicRecapData.TopTrackItem track : recapData.getTopTracks()) {
+                boolean needsCover = track.artworkPath == null || track.artworkPath.trim().isEmpty();
+                if (!needsCover) {
+                    File existing = new File(track.artworkPath);
+                    if (!existing.isAbsolute()) existing = new File(getFilesDir(), track.artworkPath);
+                    needsCover = !existing.isFile();
+                }
+                if (!needsCover) continue;
+                DeezerService.buscarCapaMusica(this, track.title, track.artist, (bitmap, artworkPath) -> {
+                    if (!isFinishing() && artworkPath != null && !artworkPath.isEmpty()) {
+                        track.artworkPath = artworkPath;
+                        canvasView.invalidate();
+                    }
+                    if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                });
+            }
+        }
+
         private void showAddTextDialog() {
             EditText input = new EditText(this);
             input.setHint("Digite o texto...");
@@ -538,7 +609,8 @@
                     "Gradiente Linear (Verde → Preto)",
                     "Gradiente Radial (Centro Iluminado)",
                     "Padrão de Pontos (Dots)",
-                    "Padrão de Grade (Grid)"
+                    "Padrão de Grade (Grid)",
+                    "Escolher cor personalizada..."
             };
     
             new AlertDialog.Builder(this)
@@ -578,6 +650,9 @@
                                 currentTemplate.setBackgroundColorHex("#080A08");
                                 currentTemplate.setBgSecondaryColorHex("#28392B");
                                 break;
+                            case 7:
+                                showCustomBackgroundColorDialog();
+                                return;
                         }
                         canvasView.invalidate();
                         updateUndoRedoButtons();
@@ -586,6 +661,35 @@
                     .show();
         }
     
+                private void showCustomBackgroundColorDialog() {
+            EditText input = new EditText(this);
+            input.setSingleLine(true);
+            input.setHint("#RRGGBB");
+            input.setTextColor(Color.WHITE);
+            input.setText(currentTemplate.getBackgroundColorHex());
+            new AlertDialog.Builder(this)
+                    .setTitle("Cor personalizada do fundo")
+                    .setMessage("Informe uma cor hexadecimal, por exemplo #7B2CBF.")
+                    .setView(input)
+                    .setPositiveButton("Aplicar", (dialog, which) -> {
+                        String hex = input.getText().toString().trim();
+                        if (!hex.startsWith("#")) hex = "#" + hex;
+                        try {
+                            Color.parseColor(hex);
+                            undoRedoManager.pushState(currentTemplate);
+                            currentTemplate.setBgStyle("SOLID");
+                            currentTemplate.setBackgroundColorHex(hex);
+                            currentTemplate.setUseDynamicPalette(false);
+                            canvasView.invalidate();
+                            updateUndoRedoButtons();
+                        } catch (IllegalArgumentException exception) {
+                            Toast.makeText(this, "Código de cor inválido.", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+        }
+
         private void showColorPickerDialog() {
             RecapElementModel elem = canvasView.getSelectedElement();
             if (elem == null) return;

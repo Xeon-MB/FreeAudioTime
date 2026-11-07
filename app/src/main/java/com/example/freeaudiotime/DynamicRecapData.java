@@ -83,7 +83,7 @@ public class DynamicRecapData {
         public final String title;
         public final String artist;
         public final String duration;
-        public final String artworkPath;
+        public String artworkPath;
 
         public TopTrackItem(String title, String artist, String duration, String artworkPath) {
             this.title = title;

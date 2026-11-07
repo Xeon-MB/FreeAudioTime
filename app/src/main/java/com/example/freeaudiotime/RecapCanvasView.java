@@ -45,7 +45,22 @@ public class RecapCanvasView extends View {
     private boolean isDragging = false;
     private boolean isScaling = false;
 
-    public interface OnElementSelectionListener {
+    private static final int HANDLE_NONE = 0;
+    private static final int HANDLE_TOP_LEFT = 1;
+    private static final int HANDLE_TOP_RIGHT = 2;
+    private static final int HANDLE_BOTTOM_LEFT = 3;
+    private static final int HANDLE_BOTTOM_RIGHT = 4;
+
+    private int activeResizeHandle = HANDLE_NONE;
+    private boolean isResizing = false;
+    private float resizeDownX;
+    private float resizeDownY;
+    private float resizeStartX;
+    private float resizeStartY;
+    private float resizeStartWidth;
+    private float resizeStartHeight;
+    private float resizeStartFontSize;
+public interface OnElementSelectionListener {
         void onElementSelected(@Nullable RecapElementModel element);
     }
 
@@ -191,27 +206,43 @@ public class RecapCanvasView extends View {
             case MotionEvent.ACTION_DOWN:
                 lastTouchX = touchX;
                 lastTouchY = touchY;
+                isDragging = false;
+                isResizing = false;
+                activeResizeHandle = HANDLE_NONE;
+
                 if (selectedElementId != null) {
                     RecapElementModel elem = findElementById(selectedElementId);
-                    if (elem != null && isPointInsideElement(touchX, touchY, elem)) {
-                        isDragging = true;
+                    if (elem != null) {
+                        activeResizeHandle = getHandleAtPoint(touchX, touchY, elem);
+                        if (activeResizeHandle != HANDLE_NONE) {
+                            isResizing = true;
+                            resizeDownX = touchX;
+                            resizeDownY = touchY;
+                            resizeStartX = elem.getX();
+                            resizeStartY = elem.getY();
+                            resizeStartWidth = elem.getWidth();
+                            resizeStartHeight = elem.getHeight();
+                            resizeStartFontSize = elem.getFontSizeSp();
+                        } else if (isPointInsideElement(touchX, touchY, elem)) {
+                            isDragging = true;
+                        }
                     }
                 }
                 break;
 
             case MotionEvent.ACTION_MOVE:
-                if (isDragging && !isScaling && selectedElementId != null && template != null) {
+                if (isResizing && !isScaling && selectedElementId != null && template != null) {
+                    resizeSelectedElement(touchX, touchY);
+                    invalidate();
+                } else if (isDragging && !isScaling && selectedElementId != null && template != null) {
                     RecapElementModel elem = findElementById(selectedElementId);
                     if (elem != null && getWidth() > 0 && getHeight() > 0) {
                         float dx = (touchX - lastTouchX) / getWidth();
                         float dy = (touchY - lastTouchY) / getHeight();
-
                         elem.setX(Math.max(0.0f, Math.min(1.0f - elem.getWidth(), elem.getX() + dx)));
                         elem.setY(Math.max(0.0f, Math.min(1.0f - elem.getHeight(), elem.getY() + dy)));
-
                         lastTouchX = touchX;
                         lastTouchY = touchY;
-
                         invalidate();
                     }
                 }
@@ -219,14 +250,89 @@ public class RecapCanvasView extends View {
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                if (isDragging) {
+                if (isDragging || isResizing) {
                     isDragging = false;
+                    isResizing = false;
+                    activeResizeHandle = HANDLE_NONE;
                     notifyChange();
                 }
                 break;
         }
 
         return true;
+    }
+
+    private int getHandleAtPoint(float touchX, float touchY, RecapElementModel elem) {
+        float left = elem.getX() * getWidth();
+        float top = elem.getY() * getHeight();
+        float right = left + elem.getWidth() * getWidth();
+        float bottom = top + elem.getHeight() * getHeight();
+        float radius = 24f * getResources().getDisplayMetrics().density;
+
+        if (distance(touchX, touchY, left, top) <= radius) return HANDLE_TOP_LEFT;
+        if (distance(touchX, touchY, right, top) <= radius) return HANDLE_TOP_RIGHT;
+        if (distance(touchX, touchY, left, bottom) <= radius) return HANDLE_BOTTOM_LEFT;
+        if (distance(touchX, touchY, right, bottom) <= radius) return HANDLE_BOTTOM_RIGHT;
+        return HANDLE_NONE;
+    }
+
+    private float distance(float x1, float y1, float x2, float y2) {
+        return (float) Math.hypot(x1 - x2, y1 - y2);
+    }
+
+    private void resizeSelectedElement(float touchX, float touchY) {
+        RecapElementModel elem = findElementById(selectedElementId);
+        if (elem == null || getWidth() <= 0 || getHeight() <= 0) return;
+
+        float dx = (touchX - resizeDownX) / getWidth();
+        float dy = (touchY - resizeDownY) / getHeight();
+        float left = resizeStartX;
+        float top = resizeStartY;
+        float right = resizeStartX + resizeStartWidth;
+        float bottom = resizeStartY + resizeStartHeight;
+
+        float minWidth = 0.04f;
+        float minHeight = 0.02f;
+
+        switch (activeResizeHandle) {
+            case HANDLE_TOP_LEFT:
+                left = Math.max(0f, Math.min(right - minWidth, resizeStartX + dx));
+                top = Math.max(0f, Math.min(bottom - minHeight, resizeStartY + dy));
+                break;
+            case HANDLE_TOP_RIGHT:
+                right = Math.max(left + minWidth, Math.min(1f, right + dx));
+                top = Math.max(0f, Math.min(bottom - minHeight, resizeStartY + dy));
+                break;
+            case HANDLE_BOTTOM_LEFT:
+                left = Math.max(0f, Math.min(right - minWidth, resizeStartX + dx));
+                bottom = Math.max(top + minHeight, Math.min(1f, bottom + dy));
+                break;
+            case HANDLE_BOTTOM_RIGHT:
+                right = Math.max(left + minWidth, Math.min(1f, right + dx));
+                bottom = Math.max(top + minHeight, Math.min(1f, bottom + dy));
+                break;
+            default:
+                return;
+        }
+
+        elem.setX(left);
+        elem.setY(top);
+        elem.setWidth(right - left);
+        elem.setHeight(bottom - top);
+
+        RecapElementBinding binding = elem.getBinding();
+        boolean isText = binding != RecapElementBinding.CUSTOM_STATIC_IMAGE
+                && binding != RecapElementBinding.TOP_ARTIST_IMAGE
+                && binding != RecapElementBinding.TOP_TRACKS_LIST
+                && binding != RecapElementBinding.SECONDARY_ARTISTS_LIST
+                && binding != RecapElementBinding.ACHIEVEMENTS_LIST;
+
+        if (isText && resizeStartWidth > 0 && resizeStartHeight > 0) {
+            float scaleX = elem.getWidth() / resizeStartWidth;
+            float scaleY = elem.getHeight() / resizeStartHeight;
+            float scale = (scaleX + scaleY) / 2f;
+            elem.setFontSizeSp(Math.max(8f, Math.min(80f, resizeStartFontSize * scale)));
+        }
     }
 
     private void handleTap(float touchX, float touchY) {
