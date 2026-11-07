@@ -96,6 +96,26 @@ public class RecapTemplate {
         return copy;
     }
 
+    /**
+     * Creates a history snapshot that preserves template and element identities.
+     * Unlike duplicate(), this is intended for undo/redo, not for creating a new template.
+     */
+    public RecapTemplate snapshot() {
+        RecapTemplate copy = duplicate(this.name);
+        copy.id = this.id;
+        copy.isSystemPreset = this.isSystemPreset;
+        copy.createdAt = this.createdAt;
+        copy.updatedAt = this.updatedAt;
+
+        if (this.elements != null && copy.elements != null) {
+            int count = Math.min(this.elements.size(), copy.elements.size());
+            for (int i = 0; i < count; i++) {
+                copy.elements.get(i).setId(this.elements.get(i).getId());
+            }
+        }
+        return copy;
+    }
+
     public JSONObject toJsonObject() throws JSONException {
         JSONObject json = new JSONObject();
         json.put("id", id);

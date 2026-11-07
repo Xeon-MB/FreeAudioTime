@@ -16,7 +16,7 @@ public class UndoRedoManager {
 
     public synchronized void pushState(RecapTemplate currentState) {
         if (currentState == null) return;
-        undoStack.push(currentState.duplicate(currentState.getName()));
+        undoStack.push(currentState.snapshot());
         redoStack.clear();
         if (undoStack.size() > MAX_HISTORY) {
             // Remove oldest
@@ -39,7 +39,7 @@ public class UndoRedoManager {
     public synchronized RecapTemplate undo(RecapTemplate currentState) {
         if (!canUndo()) return null;
         if (currentState != null) {
-            redoStack.push(currentState.duplicate(currentState.getName()));
+            redoStack.push(currentState.snapshot());
         }
         return undoStack.pop();
     }
@@ -47,7 +47,7 @@ public class UndoRedoManager {
     public synchronized RecapTemplate redo(RecapTemplate currentState) {
         if (!canRedo()) return null;
         if (currentState != null) {
-            undoStack.push(currentState.duplicate(currentState.getName()));
+            undoStack.push(currentState.snapshot());
         }
         return redoStack.pop();
     }
