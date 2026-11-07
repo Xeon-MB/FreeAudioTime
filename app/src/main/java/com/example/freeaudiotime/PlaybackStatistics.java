@@ -238,6 +238,131 @@ public class PlaybackStatistics {
 
         return total;
     }
+    /**
+     * Soma o tempo de reprodução entre duas datas, incluindo os dois limites.
+     */
+    public static long getTotalBetweenDates(
+            JSONObject history, LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
+            return 0L;
+        }
+
+        long total = 0L;
+        for (Map.Entry<String, Long> entry : getDailyTotals(history).entrySet()) {
+            try {
+                LocalDate date = LocalDate.parse(entry.getKey());
+                if (!date.isBefore(startDate) && !date.isAfter(endDate)) {
+                    total += entry.getValue();
+                }
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Ranking de artistas por tempo ouvido dentro de um intervalo inclusivo.
+     */
+    public static String getTopArtistsBetweenDates(
+            JSONObject history, LocalDate startDate, LocalDate endDate) {
+        JSONArray sessions = history.optJSONArray("sessions");
+        if (sessions == null || startDate == null || endDate == null
+                || endDate.isBefore(startDate)) {
+            return "Nenhum artista";
+        }
+
+        Map<String, Long> artistTimes = new HashMap<>();
+        for (int i = 0; i < sessions.length(); i++) {
+            JSONObject session = sessions.optJSONObject(i);
+            if (session == null) continue;
+
+            String dateText = session.optString("date", "");
+            String artist = session.optString("artist", "").trim();
+            long duration = session.optLong("duration", 0L);
+            if (dateText.length() < 10 || artist.isEmpty() || duration <= 0) continue;
+
+            try {
+                LocalDate date = LocalDate.parse(dateText.substring(0, 10));
+                if (!date.isBefore(startDate) && !date.isAfter(endDate)) {
+                    artistTimes.put(artist, artistTimes.getOrDefault(artist, 0L) + duration);
+                }
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+
+        java.util.List<Map.Entry<String, Long>> ranking =
+                new java.util.ArrayList<>(artistTimes.entrySet());
+        ranking.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
+
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
+            Map.Entry<String, Long> artist = ranking.get(i);
+            result.append(i + 1)
+                    .append(". ")
+                    .append(artist.getKey())
+                    .append(" — ")
+                    .append(formatarMinutos(artist.getValue()))
+                    .append("\\n");
+        }
+        return result.length() == 0 ? "Nenhum artista" : result.toString();
+    }
+
+    /**
+     * Ranking de músicas por reproduções distintas (playbackId) num intervalo inclusivo.
+     */
+    public static String getTopTracksBetweenDates(
+            JSONObject history, LocalDate startDate, LocalDate endDate) {
+        JSONArray sessions = history.optJSONArray("sessions");
+        if (sessions == null || startDate == null || endDate == null
+                || endDate.isBefore(startDate)) {
+            return "Nenhuma música";
+        }
+
+        Map<String, Set<String>> trackPlays = new HashMap<>();
+        for (int i = 0; i < sessions.length(); i++) {
+            JSONObject session = sessions.optJSONObject(i);
+            if (session == null) continue;
+
+            String dateText = session.optString("date", "");
+            String title = session.optString("title", "").trim();
+            String artist = session.optString("artist", "").trim();
+            String playbackId = session.optString("playbackId", "");
+            if (dateText.length() < 10 || title.isEmpty() || playbackId.isEmpty()) continue;
+
+            try {
+                LocalDate date = LocalDate.parse(dateText.substring(0, 10));
+                if (!date.isBefore(startDate) && !date.isAfter(endDate)) {
+                    String key = title + "\\n" + artist;
+                    trackPlays.putIfAbsent(key, new HashSet<>());
+                    trackPlays.get(key).add(playbackId);
+                }
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+
+        java.util.List<Map.Entry<String, Set<String>>> ranking =
+                new java.util.ArrayList<>(trackPlays.entrySet());
+        ranking.sort((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()));
+
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
+            Map.Entry<String, Set<String>> track = ranking.get(i);
+            String[] info = track.getKey().split("\\n", 2);
+            int plays = track.getValue().size();
+            result.append(i + 1)
+                    .append(". ")
+                    .append(info[0])
+                    .append(" — ")
+                    .append(info.length > 1 && !info[1].isEmpty()
+                            ? info[1] : "Artista desconhecido")
+                    .append(" — ")
+                    .append(plays)
+                    .append(plays == 1 ? " reprodução" : " reproduções")
+                    .append("\\n");
+        }
+        return result.length() == 0 ? "Nenhuma música" : result.toString();
+    }
+
     public static String getMostPlayedArtist(JSONObject history) {
 
         JSONArray sessions = history.optJSONArray("sessions");
