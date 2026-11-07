@@ -68,24 +68,29 @@ public class RecapDataResolver {
         String rawArtistsRanking = "";
         String rawTracksRanking = "";
 
+        LocalDate periodStart;
+        LocalDate periodEnd;
+
         if (category == RecapCategory.DAILY) {
-            String dateStr = selectedDate.toString();
-            totalSeconds = PlaybackStatistics.getDailyTotal(history, dateStr);
-            rawArtistsRanking = PlaybackStatistics.getDailyTopArtists(history, dateStr);
-            rawTracksRanking = PlaybackStatistics.getDailyTopTracks(history, dateStr);
+            periodStart = selectedDate;
+            periodEnd = selectedDate;
         } else if (category == RecapCategory.WEEKLY) {
-            totalSeconds = PlaybackStatistics.getWeeklyTotal(history);
-            rawArtistsRanking = PlaybackStatistics.getWeeklyTopArtists(history);
-            rawTracksRanking = PlaybackStatistics.getWeeklyTopTracks(history);
+            periodStart = selectedDate.with(DayOfWeek.MONDAY);
+            periodEnd = periodStart.plusDays(6);
         } else if (category == RecapCategory.MONTHLY) {
-            totalSeconds = PlaybackStatistics.getMonthlyTotal(history);
-            rawArtistsRanking = PlaybackStatistics.getMonthlyTopArtists(history);
-            rawTracksRanking = PlaybackStatistics.getMonthlyTopTracks(history);
+            periodStart = selectedDate.withDayOfMonth(1);
+            periodEnd = selectedDate.withDayOfMonth(selectedDate.lengthOfMonth());
         } else {
-            totalSeconds = PlaybackStatistics.getYearlyTotal(history);
-            rawArtistsRanking = PlaybackStatistics.getYearlyTopArtists(history);
-            rawTracksRanking = PlaybackStatistics.getYearlyTopTracks(history);
+            periodStart = selectedDate.withDayOfYear(1);
+            periodEnd = selectedDate.withDayOfYear(selectedDate.lengthOfYear());
         }
+
+        totalSeconds = PlaybackStatistics.getTotalBetweenDates(
+                history, periodStart, periodEnd);
+        rawArtistsRanking = PlaybackStatistics.getTopArtistsBetweenDates(
+                history, periodStart, periodEnd);
+        rawTracksRanking = PlaybackStatistics.getTopTracksBetweenDates(
+                history, periodStart, periodEnd);
 
         data.putValue(RecapElementBinding.TOTAL_TIME_FORMATTED, formatTime(totalSeconds));
         data.putValue(RecapElementBinding.TOTAL_MINUTES_SUB, "/// " + (totalSeconds / 60) + " MIN");
