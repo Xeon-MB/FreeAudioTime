@@ -44,6 +44,7 @@ public class RecapCanvasView extends View {
     private float lastTouchY;
     private boolean isDragging = false;
     private boolean isScaling = false;
+    private boolean historySnapshotCaptured = false;
 
     public interface OnElementSelectionListener {
         void onElementSelected(@Nullable RecapElementModel element);
@@ -83,6 +84,7 @@ public class RecapCanvasView extends View {
                 if (selectedElementId != null && template != null) {
                     RecapElementModel elem = findElementById(selectedElementId);
                     if (elem != null) {
+                        captureHistorySnapshot();
                         float factor = detector.getScaleFactor();
                         elem.setWidth(Math.max(0.05f, Math.min(1.0f, elem.getWidth() * factor)));
                         elem.setHeight(Math.max(0.02f, Math.min(1.0f, elem.getHeight() * factor)));
@@ -91,7 +93,6 @@ public class RecapCanvasView extends View {
                             elem.setFontSizeSp(Math.max(8f, Math.min(80f, elem.getFontSizeSp() * factor)));
                         }
                         invalidate();
-                        notifyChange();
                         return true;
                     }
                 }
@@ -101,6 +102,7 @@ public class RecapCanvasView extends View {
             @Override
             public boolean onScaleBegin(ScaleGestureDetector detector) {
                 isScaling = true;
+                captureHistorySnapshot();
                 return true;
             }
 
@@ -189,6 +191,7 @@ public class RecapCanvasView extends View {
 
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
+                historySnapshotCaptured = false;
                 lastTouchX = touchX;
                 lastTouchY = touchY;
                 if (selectedElementId != null) {
@@ -203,6 +206,7 @@ public class RecapCanvasView extends View {
                 if (isDragging && !isScaling && selectedElementId != null && template != null) {
                     RecapElementModel elem = findElementById(selectedElementId);
                     if (elem != null && getWidth() > 0 && getHeight() > 0) {
+                        captureHistorySnapshot();
                         float dx = (touchX - lastTouchX) / getWidth();
                         float dy = (touchY - lastTouchY) / getHeight();
 
@@ -219,10 +223,9 @@ public class RecapCanvasView extends View {
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                if (isDragging) {
-                    isDragging = false;
-                    notifyChange();
-                }
+                isDragging = false;
+                isScaling = false;
+                historySnapshotCaptured = false;
                 break;
         }
 
@@ -270,7 +273,10 @@ public class RecapCanvasView extends View {
         return null;
     }
 
-    private void notifyChange() {
+    /** Captures one pre-edit snapshot for the current touch gesture. */
+    private void captureHistorySnapshot() {
+        if (historySnapshotCaptured) return;
+        historySnapshotCaptured = true;
         if (templateChangeListener != null) {
             templateChangeListener.onTemplateChanged();
         }
