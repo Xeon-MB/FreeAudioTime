@@ -151,6 +151,10 @@ public class MediaNotificationListener extends NotificationListenerService {
         Log.d(TAG, "Histórico anterior carregado!");
 
         Log.d(TAG, "Serviço conectado com sucesso!");
+        diag("Listener CONECTADO | " + android.os.Build.MANUFACTURER + " "
+                + android.os.Build.MODEL + " | Android "
+                + android.os.Build.VERSION.RELEASE + " | "
+                + android.os.Build.DISPLAY);
 
         manager = (MediaSessionManager)
                 getSystemService(Context.MEDIA_SESSION_SERVICE);
@@ -207,6 +211,7 @@ public class MediaNotificationListener extends NotificationListenerService {
 
         } catch (SecurityException e) {
             Log.e(TAG, "Sem autorização para acessar sessões", e);
+            diag("ERRO: sem autorização para acessar sessões");
         }
 
         sessionRemainderMilliseconds = getSharedPreferences(
@@ -253,6 +258,12 @@ public class MediaNotificationListener extends NotificationListenerService {
                 ? artistValue.toString().trim()
                 : "";
 
+        if (!title.equals(notificationTrackTitle)) {
+            diag("Notificação de mídia: " + packageName
+                    + " | título: " + (title.isEmpty() ? "vazio" : "ok")
+                    + " | artista: " + (artist.isEmpty() ? "vazio" : "ok"));
+        }
+
         // Sem título, não atualizamos a música.
         if (title.isEmpty()) {
             return;
@@ -281,6 +292,27 @@ public class MediaNotificationListener extends NotificationListenerService {
 
         intent.setPackage(getPackageName());
         sendBroadcast(intent);
+    }
+
+    private void diag(String message) {
+        try {
+            File file = new File(getFilesDir(), "diagnostic_log.txt");
+
+            // Limita o tamanho: acima de ~100 KB, recomeça o arquivo.
+            if (file.exists() && file.length() > 100_000) {
+                file.delete();
+            }
+
+            String line = new java.text.SimpleDateFormat(
+                    "dd/MM HH:mm:ss", java.util.Locale.getDefault()
+            ).format(new java.util.Date()) + " | " + message + "\n";
+
+            try (FileOutputStream output = new FileOutputStream(file, true)) {
+                output.write(line.getBytes(StandardCharsets.UTF_8));
+            }
+        } catch (Exception ignored) {
+            // Diagnóstico nunca pode derrubar o serviço.
+        }
     }
 
 
@@ -430,11 +462,13 @@ public class MediaNotificationListener extends NotificationListenerService {
                     manager.getActiveSessions(componentName);
 
             Log.d(TAG, "Sessões encontradas: " + sessions.size());
+            diag("Sessões ativas encontradas: " + sessions.size());
 
             updateStashSession(sessions);
 
         } catch (SecurityException e) {
             Log.e(TAG, "Erro ao consultar sessões", e);
+            diag("ERRO ao consultar sessões: " + e.getMessage());
         }
     }
 
@@ -451,6 +485,9 @@ public class MediaNotificationListener extends NotificationListenerService {
             Log.d(TAG, "Sessão encontrada: " + packageName +
                     " | Estado: " +
                     (state != null ? state.getState() : "NULL"));
+            diag("Sessão: " + packageName + " | estado: "
+                    + (state != null ? state.getState() : "NULL")
+                    + " | compatível: " + SUPPORTED_PACKAGES.contains(packageName));
 
             if (!SUPPORTED_PACKAGES.contains(packageName)) {
                 continue;
@@ -483,6 +520,7 @@ public class MediaNotificationListener extends NotificationListenerService {
             unregisterCurrentController();
 
             Log.d(TAG, "Nenhum aplicativo compatível encontrado.");
+            diag("Nenhum app compatível entre as sessões");
             return;
         }
 
@@ -550,6 +588,7 @@ public class MediaNotificationListener extends NotificationListenerService {
 
         if (metadata == null) {
             Log.d(TAG, "Metadados indisponíveis.");
+            diag("Metadados NULL");
             return;
         }
 
@@ -634,6 +673,9 @@ public class MediaNotificationListener extends NotificationListenerService {
             }
         }
 
+        diag("Metadados | título: " + (title != null ? "ok" : "NULL")
+                + " | artista: " + (artist != null ? "ok" : "NULL"));
+
         Log.d(TAG, "Música: " + title);
         Log.d(TAG, "Artista: " + artist);
     }
@@ -646,6 +688,8 @@ public class MediaNotificationListener extends NotificationListenerService {
         }
 
         int playbackState = state.getState();
+
+        diag("PlaybackState recebido: " + playbackState);
 
         Bundle extras = state.getExtras();
 
@@ -761,6 +805,7 @@ public class MediaNotificationListener extends NotificationListenerService {
 
         super.onListenerDisconnected();
         Log.d(TAG, "Serviço desconectado!");
+        diag("Listener DESCONECTADO");
     }
 
     private void salvarDadosMusica(MediaMetadata metadata, String title, String artist) {
