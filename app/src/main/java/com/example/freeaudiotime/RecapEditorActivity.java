@@ -622,7 +622,7 @@ import android.widget.SeekBar;
             new AlertDialog.Builder(this)
                     .setTitle("Estilo de Fundo do Canvas")
                     .setItems(options, (dialog, which) -> {
-                        undoRedoManager.pushState(currentTemplate);
+                        if (which <= 6) undoRedoManager.pushState(currentTemplate);
                         switch (which) {
                             case 0:
                                 currentTemplate.setBgStyle("SOLID");
