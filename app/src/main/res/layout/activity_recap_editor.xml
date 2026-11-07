@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0D110E">
+
+    <!-- TOP APP BAR -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:background="#151C17">
+
+        <TextView
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:paddingHorizontal="8dp"
+            android:text="← VOLTAR"
+            android:textColor="#F3F1E7"
+            android:textStyle="bold"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/editorTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="EDITOR DE RECAP"
+            android:textColor="#B7FF00"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:ellipsize="end"
+            android:maxLines="1" />
+
+        <Button
+            android:id="@+id/btnUndo"
+            android:layout_width="44dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="4dp"
+            android:text="↶"
+            android:textSize="16sp"
+            android:backgroundTint="#243328"
+            android:textColor="#F3F1E7" />
+
+        <Button
+            android:id="@+id/btnRedo"
+            android:layout_width="44dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="6dp"
+            android:text="↷"
+            android:textSize="16sp"
+            android:backgroundTint="#243328"
+            android:textColor="#F3F1E7" />
+
+        <Button
+            android:id="@+id/btnSaveTemplate"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:text="SALVAR"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:backgroundTint="#B7FF00"
+            android:textColor="#080A08" />
+
+    </LinearLayout>
+
+    <!-- MAIN EDITING CANVAS CONTAINER -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#060806"
+        android:padding="8dp">
+
+        <com.example.freeaudiotime.RecapCanvasView
+            android:id="@+id/recapCanvasView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center" />
+
+    </FrameLayout>
+
+    <!-- ELEMENT CONTEXTUAL TOOLBAR (Visible when an element is selected) -->
+    <HorizontalScrollView
+        android:id="@+id/elementControlsScroll"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="#151C17"
+        android:scrollbars="none"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp">
+
+            <Button
+                android:id="@+id/btnEditText"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:text="EDITAR TEXTO"
+                android:textSize="11sp"
+                android:backgroundTint="#243328"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnColor"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:text="COR"
+                android:textSize="11sp"
+                android:backgroundTint="#243328"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnFont"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:text="FONTE"
+                android:textSize="11sp"
+                android:backgroundTint="#243328"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnAlign"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:text="ALINHAR"
+                android:textSize="11sp"
+                android:backgroundTint="#243328"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnRotate"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:text="GIRAR (15°)"
+                android:textSize="11sp"
+                android:backgroundTint="#243328"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnLayerUp"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:text="PARA FRENTE"
+                android:textSize="11sp"
+                android:backgroundTint="#243328"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnLayerDown"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:text="PARA TRÁS"
+                android:textSize="11sp"
+                android:backgroundTint="#243328"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnToggleVisibility"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:text="OCULTAR"
+                android:textSize="11sp"
+                android:backgroundTint="#243328"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnDeleteElement"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="EXCLUIR"
+                android:textSize="11sp"
+                android:backgroundTint="#552222"
+                android:textColor="#FF8888" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- BOTTOM ACTION BAR -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:background="#1B241E"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="10dp">
+
+            <Button
+                android:id="@+id/btnAddText"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:text="+ TEXTO"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="#2C3D31"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnAddImage"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:text="+ IMAGEM"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="#2C3D31"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnAddSticker"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:text="+ STICKER"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="#2C3D31"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnBackground"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:text="FUNDO"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="#2C3D31"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnLayersManage"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:text="CAMADAS"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="#2C3D31"
+                android:textColor="#F3F1E7" />
+
+            <Button
+                android:id="@+id/btnExportDirect"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="EXPORTAR"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="#527A18"
+                android:textColor="#FFFFFF" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+</LinearLayout>

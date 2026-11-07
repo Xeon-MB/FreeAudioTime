@@ -27,6 +27,9 @@ android {
             }
         }
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -42,6 +45,7 @@ dependencies {
     implementation("androidx.palette:palette:1.0.0")
     implementation("androidx.documentfile:documentfile:1.0.1")
     testImplementation(libs.junit)
+    testImplementation("org.json:json:20240303")
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
 }
