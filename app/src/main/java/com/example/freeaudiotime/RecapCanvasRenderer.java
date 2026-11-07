@@ -380,14 +380,31 @@ public class RecapCanvasRenderer {
     ) {
         RectF destRect = new RectF(x, y, x + w, y + h);
         if (artistImage != null && !artistImage.isRecycled()) {
-            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-            Rect srcRect = new Rect(0, 0, artistImage.getWidth(), artistImage.getHeight());
-            canvas.drawBitmap(artistImage, srcRect, destRect, paint);
+            drawBitmapCenterCrop(canvas, artistImage, destRect);
         } else {
             Paint fallbackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             fallbackPaint.setColor(Color.rgb(37, 40, 35));
             canvas.drawRect(destRect, fallbackPaint);
         }
+    }
+
+    private static void drawBitmapCenterCrop(Canvas canvas, Bitmap bitmap, RectF destination) {
+        if (bitmap == null || bitmap.isRecycled()
+                || destination.width() <= 0 || destination.height() <= 0) return;
+        float sourceRatio = (float) bitmap.getWidth() / bitmap.getHeight();
+        float destinationRatio = destination.width() / destination.height();
+        Rect source;
+        if (sourceRatio > destinationRatio) {
+            int cropWidth = Math.max(1, (int) (bitmap.getHeight() * destinationRatio));
+            int left = (bitmap.getWidth() - cropWidth) / 2;
+            source = new Rect(left, 0, left + cropWidth, bitmap.getHeight());
+        } else {
+            int cropHeight = Math.max(1, (int) (bitmap.getWidth() / destinationRatio));
+            int top = (bitmap.getHeight() - cropHeight) / 2;
+            source = new Rect(0, top, bitmap.getWidth(), top + cropHeight);
+        }
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        canvas.drawBitmap(bitmap, source, destination, paint);
     }
 
     private static void renderSecondaryArtists(
@@ -469,14 +486,18 @@ public class RecapCanvasRenderer {
             RectF thumbRect = new RectF(x, itemY, x + thumbSize, itemY + thumbSize);
             Bitmap artworkBitmap = null;
             if (track.artworkPath != null && !track.artworkPath.isEmpty() && context != null) {
-                File file = new File(context.getFilesDir(), track.artworkPath);
+                File file = new File(track.artworkPath);
+                if (!file.isAbsolute()) {
+                    file = new File(context.getFilesDir(), track.artworkPath);
+                }
                 if (file.exists()) {
                     artworkBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
                 }
             }
 
             if (artworkBitmap != null) {
-                canvas.drawBitmap(artworkBitmap, null, thumbRect, null);
+                drawBitmapCenterCrop(canvas, artworkBitmap, thumbRect);
+                artworkBitmap.recycle();
             } else {
                 Paint p = new Paint();
                 p.setColor(Color.rgb(30, 30, 30));
