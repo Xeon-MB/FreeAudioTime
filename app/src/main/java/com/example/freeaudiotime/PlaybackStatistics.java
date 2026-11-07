@@ -302,7 +302,7 @@ public class PlaybackStatistics {
                     .append(artist.getKey())
                     .append(" — ")
                     .append(formatarMinutos(artist.getValue()))
-                    .append("\\n");
+                    .append("\n");
         }
         return result.length() == 0 ? "Nenhum artista" : result.toString();
     }
@@ -332,7 +332,7 @@ public class PlaybackStatistics {
             try {
                 LocalDate date = LocalDate.parse(dateText.substring(0, 10));
                 if (!date.isBefore(startDate) && !date.isAfter(endDate)) {
-                    String key = title + "\\n" + artist;
+                    String key = title + "\n" + artist;
                     trackPlays.putIfAbsent(key, new HashSet<>());
                     trackPlays.get(key).add(playbackId);
                 }
@@ -347,7 +347,7 @@ public class PlaybackStatistics {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < Math.min(5, ranking.size()); i++) {
             Map.Entry<String, Set<String>> track = ranking.get(i);
-            String[] info = track.getKey().split("\\n", 2);
+            String[] info = track.getKey().split("\n", 2);
             int plays = track.getValue().size();
             result.append(i + 1)
                     .append(". ")
@@ -358,7 +358,7 @@ public class PlaybackStatistics {
                     .append(" — ")
                     .append(plays)
                     .append(plays == 1 ? " reprodução" : " reproduções")
-                    .append("\\n");
+                    .append("\n");
         }
         return result.length() == 0 ? "Nenhuma música" : result.toString();
     }
