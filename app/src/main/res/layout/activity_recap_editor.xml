@@ -40,21 +40,25 @@
 
         <Button
             android:id="@+id/btnUndo"
-            android:layout_width="44dp"
+            android:layout_width="wrap_content"
+            android:minWidth="104dp"
             android:layout_height="38dp"
             android:layout_marginEnd="4dp"
-            android:text="↶"
-            android:textSize="16sp"
+            android:contentDescription="Desfazer última alteração"
+            android:text="↶ DESFAZER"
+            android:textSize="11sp"
             android:backgroundTint="#243328"
             android:textColor="#F3F1E7" />
 
         <Button
             android:id="@+id/btnRedo"
-            android:layout_width="44dp"
+            android:layout_width="wrap_content"
+            android:minWidth="104dp"
             android:layout_height="38dp"
             android:layout_marginEnd="6dp"
-            android:text="↷"
-            android:textSize="16sp"
+            android:contentDescription="Refazer última alteração"
+            android:text="↷ REFAZER"
+            android:textSize="11sp"
             android:backgroundTint="#243328"
             android:textColor="#F3F1E7" />
 
