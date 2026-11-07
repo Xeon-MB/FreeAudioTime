@@ -39,6 +39,11 @@ O FreeAudioTime é um aplicativo Android desenvolvido em Java que registra o tem
 O FreeAudioTime possui um repositório próprio no F-Droid.
 
 
+**Endereço do repositório:**
+
+https://xeon-mb.github.io/FreeAudioTime/repo
+
+
 ### Como instalar pelo F-Droid
 
 1. Instale o [F-Droid](https://f-droid.org/).
@@ -274,10 +279,6 @@ Abra uma *issue* informando o **modelo do aparelho**, a **versão do Android** e
 
 GitHub: https://github.com/Xeon-MB
 
-
-**Endereço do repositório:**
-
-https://xeon-mb.github.io/FreeAudioTime/repo
 
 ---
 
