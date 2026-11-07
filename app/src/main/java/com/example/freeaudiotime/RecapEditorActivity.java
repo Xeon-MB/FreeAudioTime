@@ -387,7 +387,7 @@ import android.widget.SeekBar;
                         case TOP_ARTIST_IMAGE:
                             x = 0.35f; y = 0.12f; width = 0.30f; height = 0.17f; break;
                         case SECONDARY_ARTISTS_LIST:
-                            y = 0.55f; height = 0.22f; break;
+                            y = 0.52f; height = 0.32f; break;
                         case ACHIEVEMENTS_LIST:
                             x = 0.08f; y = 0.25f; width = 0.84f; height = 0.48f; break;
                         case TOP_TRACKS_LIST:
