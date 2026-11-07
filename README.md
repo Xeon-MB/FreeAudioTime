@@ -210,3 +210,50 @@ No painel principal do app, observe o aviso de permissão necessária e toque no
 Nas configurações do sistema Android ("Acessar notificações"), encontre o FreeAudioTime e ative a chave correspondente.
 
 ![Conceder acesso às notificações](images/20.png)
+
+## Solução de problemas
+---
+
+Se o FreeAudioTime não estiver identificando a música ou contando o tempo, siga os passos abaixo, na ordem. Os nomes dos menus podem variar conforme o fabricante e a versão do sistema.
+
+### 1. Acesso a notificações (obrigatório)
+O app usa um serviço de escuta de notificações para acompanhar as sessões de mídia. Sem essa permissão, ele não detecta nenhuma reprodução.
+
+1. Abra **Configurações → Notificações → Acesso a notificações**.
+2. Ative o **FreeAudioTime**.
+3. Se já estiver ativo e não funcionar, desative e ative novamente.
+
+### 2. Economia de bateria
+1. Abra **Configurações → Aplicativos → Gerenciar aplicativos → FreeAudioTime**.
+2. Toque em **Economia de bateria** e selecione **Sem restrições**.
+3. Se existir a opção **Pausar atividade do app se não usado**, desative-a.
+
+### 3. Início automático (Xiaomi / Redmi / POCO)
+1. Abra **Configurações → Aplicativos → Permissões → Início automático**.
+2. Ative o **FreeAudioTime**.
+
+Em algumas versões, a opção fica em **Gerenciar aplicativos → FreeAudioTime → Início automático**.
+
+### 4. Travar o app nos recentes
+1. Abra a tela de aplicativos recentes.
+2. Segure o cartão do FreeAudioTime e toque no ícone de **cadeado**.
+
+### 5. Aplicativo de música compatível
+O app só contabiliza o tempo de aplicativos da lista de compatibilidade:
+
+- Stash
+- Spotify
+- YouTube Music
+- Deezer
+- SoundCloud
+- Amazon Music
+- Apple Music
+- Opentune
+- Wlisten
+- LarkPlayer
+
+### 6. Versão do aplicativo
+Use sempre a versão mais recente do APK.
+
+### Ainda não funcionou?
+Abra uma *issue* informando o **modelo do aparelho**, a **versão do Android** e, se for Xiaomi, a **versão do HyperOS/MIUI**.
