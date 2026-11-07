@@ -605,118 +605,113 @@ import android.widget.SeekBar;
     
         private void showBackgroundCustomizer() {
             String[] options = {
-                    "Cor Sólida (Preto #080A08)",
-                    "Cor Sólida (Verde Escuro #101D17)",
-                    "Cor Sólida (Cinza Minimalista #181818)",
-                    "Gradiente Linear (Verde → Preto)",
-                    "Gradiente Radial (Centro Iluminado)",
-                    "Padrão de Pontos (Dots)",
-                    "Padrão de Grade (Grid)",
-                    "Personalizar cor principal do fundo...",
-                    "Personalizar segunda cor do fundo...",
+                    "Cor sólida (escolher na roda)",
+                    "Gradiente linear",
+                    "Gradiente radial",
+                    "Padrão de pontos",
+                    "Padrão de grade",
+                    "Personalizar cor principal...",
+                    "Personalizar segunda cor...",
                     "Personalizar cor de destaque...",
                     "Personalizar cor padrão dos textos...",
                     "Personalizar cor dos painéis..."
             };
-    
+
             new AlertDialog.Builder(this)
-                    .setTitle("Estilo de Fundo do Canvas")
+                    .setTitle("Estilo e cores do canvas")
                     .setItems(options, (dialog, which) -> {
-                        if (which <= 6) undoRedoManager.pushState(currentTemplate);
+                        if (which >= 1 && which <= 4) {
+                            undoRedoManager.pushState(currentTemplate);
+                        }
+
                         switch (which) {
                             case 0:
-                                currentTemplate.setBgStyle("SOLID");
-                                currentTemplate.setBackgroundColorHex("#080A08");
-                                break;
-                            case 1:
-                                currentTemplate.setBgStyle("SOLID");
-                                currentTemplate.setBackgroundColorHex("#101D17");
-                                break;
-                            case 2:
-                                currentTemplate.setBgStyle("SOLID");
-                                currentTemplate.setBackgroundColorHex("#181818");
-                                break;
-                            case 3:
-                                currentTemplate.setBgStyle("GRADIENT_LINEAR");
-                                currentTemplate.setBackgroundColorHex("#1A2D23");
-                                currentTemplate.setBgSecondaryColorHex("#080A08");
-                                break;
-                            case 4:
-                                currentTemplate.setBgStyle("GRADIENT_RADIAL");
-                                currentTemplate.setBackgroundColorHex("#050806");
-                                currentTemplate.setBgSecondaryColorHex("#213D2D");
-                                break;
-                            case 5:
-                                currentTemplate.setBgStyle("PATTERN_DOTS");
-                                currentTemplate.setBackgroundColorHex("#080A08");
-                                currentTemplate.setBgSecondaryColorHex("#304033");
-                                break;
-                            case 6:
-                                currentTemplate.setBgStyle("PATTERN_GRID");
-                                currentTemplate.setBackgroundColorHex("#080A08");
-                                currentTemplate.setBgSecondaryColorHex("#28392B");
-                                break;
-                            case 7:
-                                showColorWheelDialog("Cor principal do fundo",
-                                        parseColorOrDefault(currentTemplate.getBackgroundColorHex(), Color.rgb(8, 10, 8)),
+                                showColorWheelDialog("Cor do fundo",
+                                        parseColorOrDefault(currentTemplate.getBackgroundColorHex(), Color.BLACK),
                                         color -> {
                                             currentTemplate.setBgStyle("SOLID");
                                             currentTemplate.setBackgroundColorHex(toColorHex(color));
                                             currentTemplate.setUseDynamicPalette(false);
                                             canvasView.invalidate();
-                                            updateUndoRedoButtons();
                                         });
                                 return;
-                            case 8:
-                                showColorWheelDialog("Segunda cor do fundo",
-                                        parseColorOrDefault(currentTemplate.getBgSecondaryColorHex(), Color.rgb(22, 29, 21)),
+                            case 1:
+                                currentTemplate.setBgStyle("GRADIENT_LINEAR");
+                                currentTemplate.setBackgroundColorHex("#1A2D23");
+                                currentTemplate.setBgSecondaryColorHex("#080A08");
+                                currentTemplate.setUseDynamicPalette(false);
+                                break;
+                            case 2:
+                                currentTemplate.setBgStyle("GRADIENT_RADIAL");
+                                currentTemplate.setBackgroundColorHex("#050806");
+                                currentTemplate.setBgSecondaryColorHex("#213D2D");
+                                currentTemplate.setUseDynamicPalette(false);
+                                break;
+                            case 3:
+                                currentTemplate.setBgStyle("PATTERN_DOTS");
+                                currentTemplate.setBackgroundColorHex("#080A08");
+                                currentTemplate.setBgSecondaryColorHex("#304033");
+                                currentTemplate.setUseDynamicPalette(false);
+                                break;
+                            case 4:
+                                currentTemplate.setBgStyle("PATTERN_GRID");
+                                currentTemplate.setBackgroundColorHex("#080A08");
+                                currentTemplate.setBgSecondaryColorHex("#28392B");
+                                currentTemplate.setUseDynamicPalette(false);
+                                break;
+                            case 5:
+                                showColorWheelDialog("Cor principal do fundo",
+                                        parseColorOrDefault(currentTemplate.getBackgroundColorHex(), Color.BLACK),
                                         color -> {
-                                            currentTemplate.setBgSecondaryColorHex(toColorHex(color));
-                                            if ("SOLID".equals(currentTemplate.getBgStyle())) {
-                                                currentTemplate.setBgStyle("GRADIENT_LINEAR");
-                                            }
+                                            currentTemplate.setBackgroundColorHex(toColorHex(color));
                                             currentTemplate.setUseDynamicPalette(false);
                                             canvasView.invalidate();
-                                            updateUndoRedoButtons();
                                         });
                                 return;
-                            case 9:
+                            case 6:
+                                showColorWheelDialog("Segunda cor do fundo",
+                                        parseColorOrDefault(currentTemplate.getBgSecondaryColorHex(), Color.DKGRAY),
+                                        color -> {
+                                            currentTemplate.setBgSecondaryColorHex(toColorHex(color));
+                                            currentTemplate.setUseDynamicPalette(false);
+                                            canvasView.invalidate();
+                                        });
+                                return;
+                            case 7:
                                 showColorWheelDialog("Cor de destaque",
-                                        parseColorOrDefault(currentTemplate.getAccentColorHex(), Color.rgb(183, 255, 0)),
+                                        parseColorOrDefault(currentTemplate.getAccentColorHex(), Color.GREEN),
                                         color -> {
                                             currentTemplate.setAccentColorHex(toColorHex(color));
                                             currentTemplate.setUseDynamicPalette(false);
                                             canvasView.invalidate();
-                                            updateUndoRedoButtons();
                                         });
                                 return;
-                            case 10:
+                            case 8:
                                 showColorWheelDialog("Cor padrão dos textos",
                                         parseColorOrDefault(currentTemplate.getTextColorHex(), Color.WHITE),
                                         color -> {
                                             currentTemplate.setTextColorHex(toColorHex(color));
                                             canvasView.invalidate();
-                                            updateUndoRedoButtons();
                                         });
                                 return;
-                            case 11:
+                            case 9:
                                 showColorWheelDialog("Cor dos painéis",
-                                        parseColorOrDefault(currentTemplate.getSecondaryBgColorHex(), Color.rgb(17, 21, 17)),
+                                        parseColorOrDefault(currentTemplate.getSecondaryBgColorHex(), Color.DKGRAY),
                                         color -> {
                                             currentTemplate.setSecondaryBgColorHex(toColorHex(color));
                                             canvasView.invalidate();
-                                            updateUndoRedoButtons();
                                         });
                                 return;
                         }
+
                         canvasView.invalidate();
                         updateUndoRedoButtons();
                     })
                     .setNegativeButton("Cancelar", null)
                     .show();
         }
-    
-                private interface ColorSelectionListener {
+
+        private interface ColorSelectionListener {
             void onColorSelected(int color);
         }
 
@@ -792,17 +787,6 @@ import android.widget.SeekBar;
                     })
                     .setNegativeButton("Cancelar", null)
                     .show();
-        }
-
-        private void showCustomBackgroundColorDialog() {
-            showColorWheelDialog("Cor personalizada do fundo",
-                    parseColorOrDefault(currentTemplate.getBackgroundColorHex(), Color.BLACK),
-                    color -> {
-                        currentTemplate.setBgStyle("SOLID");
-                        currentTemplate.setBackgroundColorHex(toColorHex(color));
-                        currentTemplate.setUseDynamicPalette(false);
-                        canvasView.invalidate();
-                    });
         }
 
         private void showColorPickerDialog() {
