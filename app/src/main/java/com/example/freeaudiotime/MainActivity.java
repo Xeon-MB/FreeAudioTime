@@ -34,6 +34,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
@@ -286,6 +287,24 @@ public class MainActivity extends AppCompatActivity {
 
         long weeklyTotal =
                 PlaybackStatistics.getWeeklyTotal(history);
+        JSONArray sessions = history.optJSONArray("sessions");
+
+        long sessionsTotal = 0;
+
+        if (sessions != null) {
+            for (int i = 0; i < sessions.length(); i++) {
+                JSONObject session = sessions.optJSONObject(i);
+
+                if (session != null) {
+                    sessionsTotal += session.optLong("duration", 0);
+                }
+            }
+        }
+
+        Log.d("AudioTime", "Total geral: " + totalTime);
+        Log.d("AudioTime", "Total das sessões: " + sessionsTotal);
+        Log.d("AudioTime", "Quantidade de sessões: " +
+                (sessions != null ? sessions.length() : 0));
 
         long monthlyTotal =
                 PlaybackStatistics.getMonthlyTotal(history);

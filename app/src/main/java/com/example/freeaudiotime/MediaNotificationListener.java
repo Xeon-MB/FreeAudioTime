@@ -38,9 +38,14 @@ public class MediaNotificationListener extends NotificationListenerService {
 
     private long playbackStartTime = 0;
     private long accumulatedTime = 0;
+
+    private long sessionRemainderMilliseconds = 0;
     private boolean isPlaying = false;
 
     private final Handler saveHandler = new Handler(Looper.getMainLooper());
+
+    private String notificationTrackTitle;
+    private String notificationTrackArtist;
 
     private final Runnable periodicSave = new Runnable() {
         @Override
@@ -203,46 +208,81 @@ public class MediaNotificationListener extends NotificationListenerService {
         } catch (SecurityException e) {
             Log.e(TAG, "Sem autorização para acessar sessões", e);
         }
+
+        sessionRemainderMilliseconds = getSharedPreferences(
+                "playback_precision",
+                MODE_PRIVATE
+        ).getLong("remainder_ms", 0);
     }
+
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
 
-        Log.d(TAG, "NOTIFICAÇÃO RECEBIDA: " + sbn.getPackageName());
+        String packageName = sbn.getPackageName();
 
-        if (!"com.google.android.apps.youtube.music".equals(
-                sbn.getPackageName())) {
+        // Aplicativos cujas notificações queremos aproveitar.
+        if (!"com.spotify.music".equals(packageName) &&
+                !"com.google.android.apps.youtube.music".equals(packageName)) {
             return;
         }
 
-        Log.d(TAG, "========== NOTIFICAÇÃO YOUTUBE MUSIC ==========");
-
-        Log.d(TAG, "Package: " + sbn.getPackageName());
-
         Notification notification = sbn.getNotification();
 
-        Log.d(TAG, "Category: " + notification.category);
-
-        if (notification.extras != null) {
-
-            Bundle extras = notification.extras;
-
-            for (String key : extras.keySet()) {
-
-                Object value = extras.get(key);
-
-                if (value instanceof String ||
-                        value instanceof CharSequence ||
-                        value instanceof Number ||
-                        value instanceof Boolean) {
-
-                    Log.d(TAG, "NOTIFICATION: " + key + " = " + value);
-                }
-            }
+        if (notification == null || notification.extras == null) {
+            return;
         }
 
-        Log.d(TAG, "========== FIM DA NOTIFICAÇÃO ==========");
+        Bundle extras = notification.extras;
+
+        CharSequence titleValue =
+                extras.getCharSequence(Notification.EXTRA_TITLE);
+
+        CharSequence artistValue =
+                extras.getCharSequence(Notification.EXTRA_TEXT);
+
+        if (artistValue == null) {
+            artistValue = extras.getCharSequence(Notification.EXTRA_SUB_TEXT);
+        }
+
+        String title = titleValue != null
+                ? titleValue.toString().trim()
+                : "";
+
+        String artist = artistValue != null
+                ? artistValue.toString().trim()
+                : "";
+
+        // Sem título, não atualizamos a música.
+        if (title.isEmpty()) {
+            return;
+        }
+
+        Log.d(TAG, "Notificação de mídia: " + packageName);
+        Log.d(TAG, "Título: " + title);
+        Log.d(TAG, "Artista: " + artist);
+
+        notificationTrackTitle = title;
+        notificationTrackArtist = artist;
+
+        // Atualiza os dados exibidos na tela.
+        getSharedPreferences("current_track", MODE_PRIVATE)
+                .edit()
+                .putString("title", title)
+                .putString("artist", artist.isEmpty()
+                        ? "Artista desconhecido"
+                        : artist)
+                .apply();
+
+        // Avisa a MainActivity para atualizar a interface.
+        Intent intent = new Intent(
+                "com.example.freeaudiotime.TRACK_UPDATED"
+        );
+
+        intent.setPackage(getPackageName());
+        sendBroadcast(intent);
     }
+
 
     private void startPeriodicSave() {
         saveHandler.removeCallbacks(periodicSave);
@@ -261,10 +301,9 @@ public class MediaNotificationListener extends NotificationListenerService {
         }
 
         long currentTime = SystemClock.elapsedRealtime();
-
         long elapsed = currentTime - playbackStartTime;
 
-        if (elapsed < 1000) {
+        if (elapsed <= 0) {
             return;
         }
 
@@ -276,26 +315,44 @@ public class MediaNotificationListener extends NotificationListenerService {
 
         trackTimes.put(currentTrackTitle, previousTime + elapsed);
 
-        try {
-            JSONObject session = new JSONObject();
+        // Recupera os milissegundos restantes do intervalo anterior.
+        long elapsedWithRemainder = elapsed + sessionRemainderMilliseconds;
 
-            session.put("date", new java.text.SimpleDateFormat(
-                    "yyyy-MM-dd'T'HH:mm:ss",
-                    java.util.Locale.getDefault()
-            ).format(new java.util.Date()));
+        long durationSeconds = elapsedWithRemainder / 1000;
 
-            session.put("title", currentTrackTitle);
-            session.put("artist", trackArtists.get(currentTrackTitle));
-            session.put("playbackId", currentPlaybackId);
-            session.put("duration", elapsed / 1000);
+        sessionRemainderMilliseconds = elapsedWithRemainder % 1000;
 
-            playbackSessions.put(session);
+        // Preserva o restante mesmo se o serviço for reiniciado.
+        getSharedPreferences("playback_precision", MODE_PRIVATE)
+                .edit()
+                .putLong("remainder_ms", sessionRemainderMilliseconds)
+                .apply();
 
-        } catch (Exception e) {
-            Log.e(TAG, "Erro ao registrar sessão", e);
+        if (durationSeconds > 0) {
+            try {
+                JSONObject session = new JSONObject();
+
+                session.put("date", new java.text.SimpleDateFormat(
+                        "yyyy-MM-dd'T'HH:mm:ss",
+                        java.util.Locale.getDefault()
+                ).format(new java.util.Date()));
+
+                session.put("title", currentTrackTitle);
+                session.put("artist", trackArtists.get(currentTrackTitle));
+                session.put("playbackId", currentPlaybackId);
+                session.put("duration", durationSeconds);
+
+                playbackSessions.put(session);
+
+            } catch (Exception e) {
+                Log.e(TAG, "Erro ao registrar sessão", e);
+            }
         }
 
         playbackStartTime = currentTime;
+
+        Log.d(TAG, "Milissegundos preservados: " +
+                sessionRemainderMilliseconds);
 
         Log.d(TAG, "Tempo de " + currentTrackTitle + ": " +
                 trackTimes.get(currentTrackTitle) / 1000 + " segundos");
