@@ -223,8 +223,9 @@ public class RecapDataResolver {
             data.putValue(RecapElementBinding.BEST_DAY_TITLE, "PEAK DAY / BEST MOMENT");
             LocalDate bestDate = null;
             long maxTime = 0;
-            for (int i = 6; i >= 0; i--) {
-                LocalDate d = selectedDate.minusDays(i);
+            LocalDate weekStart = selectedDate.with(DayOfWeek.MONDAY);
+            for (int i = 0; i < 7; i++) {
+                LocalDate d = weekStart.plusDays(i);
                 long t = dailyTotals.getOrDefault(d.toString(), 0L);
                 if (t > maxTime) {
                     maxTime = t;
