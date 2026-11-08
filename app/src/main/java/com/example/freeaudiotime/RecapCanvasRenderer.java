@@ -153,7 +153,7 @@ public class RecapCanvasRenderer {
                         break;
 
                     default:
-                        renderTextElement(canvas, elemX, elemY, elemW, elemH, elem, data, accentColor, textColor);
+                        renderTextElement(context, canvas, elemX, elemY, elemW, elemH, elem, data, accentColor, textColor);
                         break;
                 }
             }
@@ -448,6 +448,7 @@ public class RecapCanvasRenderer {
     }
 
     private static void renderTextElement(
+            Context context,
             Canvas canvas,
             float x, float y, float w, float h,
             RecapElementModel elem,
@@ -498,7 +499,7 @@ public class RecapCanvasRenderer {
         }
 
         // Apply the selected system font family while keeping older saved templates valid.
-        textPaint.setTypeface(resolveTypeface(elem.getFontFamily()));
+        textPaint.setTypeface(resolveTypeface(context, elem.getFontFamily()));
 
         Paint.Align align = Paint.Align.LEFT;
         float textX = x;
@@ -691,29 +692,34 @@ public class RecapCanvasRenderer {
         }
     }
 
-    private static Typeface resolveTypeface(String family) {
+    private static Typeface resolveTypeface(Context context, String family) {
         if (family == null) return Typeface.SANS_SERIF;
+        if (family.startsWith("CUSTOM_FONT:") && context != null) {
+            File fontFile = new File(context.getFilesDir(), family.substring("CUSTOM_FONT:".length()));
+            if (fontFile.isFile()) {
+                try { return Typeface.createFromFile(fontFile); }
+                catch (RuntimeException ignored) { return Typeface.SANS_SERIF; }
+            }
+        }
         switch (family.toUpperCase(java.util.Locale.ROOT)) {
-            case "SERIF":
-                return Typeface.SERIF;
-            case "SERIF_BOLD":
-                return Typeface.create("serif", Typeface.BOLD);
-            case "MONOSPACE":
-                return Typeface.MONOSPACE;
-            case "CONDENSED":
-                return Typeface.create("sans-serif-condensed", Typeface.NORMAL);
-            case "SANS_LIGHT":
-                return Typeface.create("sans-serif-light", Typeface.NORMAL);
-            case "SANS_MEDIUM":
-                return Typeface.create("sans-serif-medium", Typeface.NORMAL);
-            case "SANS_BLACK":
-                return Typeface.create("sans-serif-black", Typeface.NORMAL);
-            case "SANS_ROUNDED":
-                return Typeface.create("sans-serif-rounded", Typeface.NORMAL);
-            case "SANS_THIN":
-                return Typeface.create("sans-serif-thin", Typeface.NORMAL);
-            default:
-                return Typeface.SANS_SERIF;
+            case "SERIF": return Typeface.SERIF;
+            case "SERIF_BOLD": return Typeface.create("serif", Typeface.BOLD);
+            case "SERIF_ITALIC": return Typeface.create("serif", Typeface.ITALIC);
+            case "MONOSPACE": return Typeface.MONOSPACE;
+            case "CONDENSED": return Typeface.create("sans-serif-condensed", Typeface.NORMAL);
+            case "CONDENSED_BOLD": return Typeface.create("sans-serif-condensed", Typeface.BOLD);
+            case "SANS_LIGHT": return Typeface.create("sans-serif-light", Typeface.NORMAL);
+            case "SANS_MEDIUM": return Typeface.create("sans-serif-medium", Typeface.NORMAL);
+            case "SANS_BLACK": return Typeface.create("sans-serif-black", Typeface.NORMAL);
+            case "SANS_EXTRA_BLACK": return Typeface.create("sans-serif-black", Typeface.BOLD);
+            case "SANS_ROUNDED": return Typeface.create("sans-serif-rounded", Typeface.NORMAL);
+            case "SANS_THIN": return Typeface.create("sans-serif-thin", Typeface.NORMAL);
+            case "CURSIVE": return Typeface.create("cursive", Typeface.NORMAL);
+            case "CASUAL": return Typeface.create("casual", Typeface.NORMAL);
+            case "FANTASY": return Typeface.create("fantasy", Typeface.NORMAL);
+            case "SANS_BOLD_ITALIC": return Typeface.create("sans-serif", Typeface.BOLD_ITALIC);
+            case "SMALL_CAPS": return Typeface.create("sans-serif-smallcaps", Typeface.NORMAL);
+            default: return Typeface.SANS_SERIF;
         }
     }
 
