@@ -55,6 +55,9 @@ public class StickerBuilderActivity extends AppCompatActivity {
     private float currentStrokeWidth = 9f;
     private int selectedTextIndex = -1;
     private boolean movingSelectedText = false;
+    private int selectedCommandIndex = -1;
+    private View currentColorSwatch;
+    private TextView currentColorHex;
     private float lastTouchX, lastTouchY;
 
     private final ActivityResultLauncher<String> fontPickerLauncher =
@@ -62,7 +65,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 if (uri != null) importCustomFont(uri);
             });
 
-    private enum Tool { BRUSH, LINE, RECTANGLE, ELLIPSE, ERASER }
+    private enum Tool { BRUSH, LINE, RECTANGLE, ELLIPSE, ERASER, SELECT }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,15 +121,36 @@ public class StickerBuilderActivity extends AppCompatActivity {
         addToolButton(tools, "Retângulo", Tool.RECTANGLE);
         addToolButton(tools, "Círculo", Tool.ELLIPSE);
         addToolButton(tools, "Borracha", Tool.ERASER);
+        addToolButton(tools, "Selecionar", Tool.SELECT);
         toolsScroll.addView(tools);
         root.addView(toolsScroll);
 
+        LinearLayout colorHeader = new LinearLayout(this);
+        colorHeader.setGravity(Gravity.CENTER_VERTICAL);
         TextView colorLabel = new TextView(this);
         colorLabel.setText("CORES");
         colorLabel.setTextColor(Color.LTGRAY);
         colorLabel.setTextSize(10);
         colorLabel.setPadding(dp(2), dp(8), 0, dp(3));
-        root.addView(colorLabel);
+        colorHeader.addView(colorLabel);
+        View colorSpacer = new View(this);
+        colorHeader.addView(colorSpacer, new LinearLayout.LayoutParams(0, 1, 1f));
+        currentColorSwatch = new View(this);
+        android.graphics.drawable.GradientDrawable currentSwatchBg =
+                new android.graphics.drawable.GradientDrawable();
+        currentSwatchBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        currentSwatchBg.setColor(currentColor);
+        currentSwatchBg.setStroke(dp(1), Color.WHITE);
+        currentColorSwatch.setBackground(currentSwatchBg);
+        colorHeader.addView(currentColorSwatch, new LinearLayout.LayoutParams(dp(20), dp(20)));
+        currentColorHex = new TextView(this);
+        currentColorHex.setTextColor(Color.WHITE);
+        currentColorHex.setTextSize(11);
+        currentColorHex.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        currentColorHex.setPadding(dp(6), dp(8), dp(4), dp(3));
+        colorHeader.addView(currentColorHex);
+        root.addView(colorHeader);
+        updateCurrentColorIndicator();
 
         LinearLayout colors = new LinearLayout(this);
         colors.setGravity(Gravity.CENTER_VERTICAL);
@@ -150,6 +174,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
             swatch.setOnClickListener(v -> {
                 currentColor = color;
                 drawingView.setColor(color);
+                updateCurrentColorIndicator();
             });
         }
         Button customColor = new Button(this);
@@ -206,6 +231,12 @@ public class StickerBuilderActivity extends AppCompatActivity {
         fontText.setTextSize(12);
         fontText.setPadding(dp(8), 0, dp(8), 0);
         textActions.addView(fontText, new LinearLayout.LayoutParams(dp(92), dp(44)));
+        Button deleteElement = new Button(this);
+        deleteElement.setText("Excluir");
+        deleteElement.setTextSize(12);
+        deleteElement.setPadding(dp(8), 0, dp(8), 0);
+        deleteElement.setOnClickListener(v -> drawingView.deleteSelectedElement());
+        textActions.addView(deleteElement, new LinearLayout.LayoutParams(dp(92), dp(44)));
 
         HorizontalScrollView textActionsScroll = new HorizontalScrollView(this);
         textActionsScroll.setHorizontalScrollBarEnabled(false);
@@ -345,9 +376,25 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 .setPositiveButton("Aplicar", (dialog, which) -> {
                     currentColor = wheel.getColor();
                     drawingView.setColor(currentColor);
+                    updateCurrentColorIndicator();
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+
+    private void updateCurrentColorIndicator() {
+        if (currentColorSwatch != null) {
+            android.graphics.drawable.GradientDrawable background =
+                    new android.graphics.drawable.GradientDrawable();
+            background.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            background.setColor(currentColor);
+            background.setStroke(dp(1), Color.WHITE);
+            currentColorSwatch.setBackground(background);
+        }
+        if (currentColorHex != null) {
+            currentColorHex.setText(String.format(java.util.Locale.ROOT, "#%06X",
+                    currentColor & 0xFFFFFF));
+        }
     }
 
     private void confirmClear() {
@@ -403,9 +450,31 @@ public class StickerBuilderActivity extends AppCompatActivity {
             setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         }
 
-        void setTool(Tool next) { tool = next; pendingText = null; invalidate(); }
+        void setTool(Tool next) {
+            tool = next;
+            pendingText = null;
+            if (next == Tool.SELECT) {
+                movingSelectedText = false;
+            }
+            invalidate();
+        }
         void setColor(int next) { color = next; }
         void setStrokeWidth(float next) { strokeWidth = next; }
+
+        void deleteSelectedElement() {
+            if (selectedCommandIndex < 0 || selectedCommandIndex >= commands.size()) {
+                Toast.makeText(StickerBuilderActivity.this,
+                        "Selecione um elemento para excluir.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            saveUndo();
+            commands.remove(selectedCommandIndex);
+            selectedCommandIndex = -1;
+            selectedTextIndex = -1;
+            movingSelectedText = false;
+            redo.clear();
+            invalidate();
+        }
 
         boolean hasArtwork() { return !commands.isEmpty(); }
 
@@ -422,6 +491,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
             command.y1 = ART_SIZE / 2f;
             commands.add(command);
             selectedTextIndex = commands.size() - 1;
+            selectedCommandIndex = selectedTextIndex;
             redo.clear();
             invalidate();
         }
@@ -504,8 +574,71 @@ public class StickerBuilderActivity extends AppCompatActivity {
             canvas.scale(scale, scale);
             for (DrawCommand command : commands) drawCommand(canvas, command);
             if (active != null) drawCommand(canvas, active);
+            drawSelectedElementOutline(canvas);
             canvas.restore();
             canvas.restore();
+        }
+
+        private void drawSelectedElementOutline(Canvas canvas) {
+            if (selectedCommandIndex < 0 || selectedCommandIndex >= commands.size()) return;
+            DrawCommand command = commands.get(selectedCommandIndex);
+            if ("TEXT".equals(command.kind)) return; // Text already has its own selection frame.
+            RectF bounds = getCommandBounds(command);
+            if (bounds == null) return;
+            Paint outline = new Paint(Paint.ANTI_ALIAS_FLAG);
+            outline.setColor(Color.rgb(183, 255, 0));
+            outline.setStyle(Paint.Style.STROKE);
+            outline.setStrokeWidth(3f / Math.max(scale, 0.01f));
+            outline.setPathEffect(new android.graphics.DashPathEffect(new float[]{10f, 7f}, 0));
+            bounds.inset(-8f, -8f);
+            canvas.drawRect(bounds, outline);
+        }
+
+        private RectF getCommandBounds(DrawCommand command) {
+            if ("TEXT".equals(command.kind)) {
+                Paint measure = new Paint(Paint.ANTI_ALIAS_FLAG);
+                measure.setTypeface(createTypeface(command.fontFamily));
+                measure.setTextSize(command.textSize);
+                float width = 0f;
+                String[] lines = command.text.split("\\n");
+                for (String line : lines) width = Math.max(width, measure.measureText(line));
+                return new RectF(command.x1 - width / 2f,
+                        command.y1 - command.textSize * lines.length * 0.7f,
+                        command.x1 + width / 2f,
+                        command.y1 + command.textSize * lines.length * 0.7f);
+            }
+            if (command.path != null) {
+                RectF pathBounds = new RectF();
+                command.path.computeBounds(pathBounds, true);
+                float pad = command.width / 2f + 8f;
+                pathBounds.inset(-pad, -pad);
+                return pathBounds;
+            }
+            float pad = command.width / 2f + 8f;
+            return new RectF(Math.min(command.x1, command.x2) - pad,
+                    Math.min(command.y1, command.y2) - pad,
+                    Math.max(command.x1, command.x2) + pad,
+                    Math.max(command.y1, command.y2) + pad);
+        }
+
+        private DrawCommand findCommandAt(float x, float y) {
+            float tolerance = 22f;
+            for (int i = commands.size() - 1; i >= 0; i--) {
+                DrawCommand command = commands.get(i);
+                RectF bounds = getCommandBounds(command);
+                if (bounds == null) continue;
+                bounds.inset(-tolerance, -tolerance);
+                if (bounds.contains(x, y)) return command;
+            }
+            return null;
+        }
+
+        private void moveCommand(DrawCommand command, float dx, float dy) {
+            if (command.path != null) command.path.offset(dx, dy);
+            command.x1 += dx;
+            command.y1 += dy;
+            command.x2 += dx;
+            command.y2 += dy;
         }
 
         private void drawCheckerboard(Canvas canvas) {
@@ -628,8 +761,21 @@ public class StickerBuilderActivity extends AppCompatActivity {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     DrawCommand hit = findTextAt(point[0], point[1]);
+                    if (tool == Tool.SELECT) {
+                        DrawCommand selected = findCommandAt(point[0], point[1]);
+                        selectedCommandIndex = selected == null ? -1 : commands.indexOf(selected);
+                        selectedTextIndex = selected != null && "TEXT".equals(selected.kind)
+                                ? selectedCommandIndex : -1;
+                        movingSelectedText = selected != null;
+                        lastTouchX = point[0];
+                        lastTouchY = point[1];
+                        if (movingSelectedText) saveUndo();
+                        invalidate();
+                        return true;
+                    }
                     if (hit != null) {
                         selectedTextIndex = commands.indexOf(hit);
+                        selectedCommandIndex = selectedTextIndex;
                         saveUndo();
                         movingSelectedText = true;
                         lastTouchX = point[0];
@@ -638,6 +784,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
                         return true;
                     }
                     selectedTextIndex = -1;
+                    selectedCommandIndex = -1;
                     movingSelectedText = false;
                     saveUndo();
                     active = new DrawCommand();
@@ -656,10 +803,11 @@ public class StickerBuilderActivity extends AppCompatActivity {
                     return true;
                 case MotionEvent.ACTION_MOVE:
                     if (movingSelectedText) {
-                        DrawCommand selected = getSelectedText();
-                        if (selected != null) {
-                            selected.x1 += point[0] - lastTouchX;
-                            selected.y1 += point[1] - lastTouchY;
+                        if (selectedCommandIndex >= 0 && selectedCommandIndex < commands.size()) {
+                            DrawCommand selected = commands.get(selectedCommandIndex);
+                            float dx = point[0] - lastTouchX;
+                            float dy = point[1] - lastTouchY;
+                            moveCommand(selected, dx, dy);
                             lastTouchX = point[0];
                             lastTouchY = point[1];
                             invalidate();
