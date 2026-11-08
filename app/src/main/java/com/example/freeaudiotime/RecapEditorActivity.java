@@ -1007,19 +1007,35 @@ import android.widget.SeekBar;
             RecapElementModel elem = canvasView.getSelectedElement();
             if (elem == null) return;
 
-            String[] fontNames = {
-                    "Sans padrão", "Serifada clássica", "Monoespaçada",
-                    "Condensada", "Sans leve", "Sans média",
-                    "Sans pesada", "Arredondada", "Serifada em negrito",
-                    "Sans fina"
-            };
-            String[] fontCodes = {
+            java.util.ArrayList<String> fontNames = new java.util.ArrayList<>(java.util.Arrays.asList(
+                    "Sans — padrão", "Serif — editorial", "Monospace — máquina",
+                    "Condensada — pôster", "Sans leve", "Sans fina",
+                    "Sans média", "Sans pesada", "Sans extra pesada",
+                    "Arredondada", "Cursiva — manuscrita", "Casual",
+                    "Fantasy", "Serif em negrito", "Serif itálica",
+                    "Sans negrito itálica", "Small caps", "Condensada negrito"
+            ));
+            java.util.ArrayList<String> fontCodes = new java.util.ArrayList<>(java.util.Arrays.asList(
                     "SANS_SERIF", "SERIF", "MONOSPACE", "CONDENSED",
-                    "SANS_LIGHT", "SANS_MEDIUM", "SANS_BLACK",
-                    "SANS_ROUNDED", "SERIF_BOLD", "SANS_THIN"
-            };
+                    "SANS_LIGHT", "SANS_THIN", "SANS_MEDIUM", "SANS_BLACK",
+                    "SANS_EXTRA_BLACK", "SANS_ROUNDED", "CURSIVE", "CASUAL",
+                    "FANTASY", "SERIF_BOLD", "SERIF_ITALIC",
+                    "SANS_BOLD_ITALIC", "SMALL_CAPS", "CONDENSED_BOLD"
+            ));
 
-            int padding = (int) (12 * getResources().getDisplayMetrics().density);
+            File[] importedFonts = getFilesDir().listFiles((dir, name) ->
+                    name.startsWith("recap_font_") &&
+                    (name.endsWith(".ttf") || name.endsWith(".otf") || name.endsWith(".ttc")));
+            if (importedFonts != null) {
+                java.util.Arrays.sort(importedFonts, java.util.Comparator.comparing(File::getName));
+                for (File fontFile : importedFonts) {
+                    String code = "CUSTOM_FONT:" + fontFile.getName();
+                    fontCodes.add(code);
+                    fontNames.add("Importada: " + fontFile.getName().replaceFirst("^recap_font_", ""));
+                }
+            }
+
+            int padding = dp(12);
             android.widget.ScrollView scroll = new android.widget.ScrollView(this);
             LinearLayout list = new LinearLayout(this);
             list.setOrientation(LinearLayout.VERTICAL);
@@ -1029,17 +1045,18 @@ import android.widget.SeekBar;
             AlertDialog dialog = new AlertDialog.Builder(this)
                     .setTitle("Escolha uma fonte")
                     .setView(scroll)
+                    .setPositiveButton("Importar fonte", null)
                     .setNegativeButton("Cancelar", null)
                     .create();
 
-            for (int i = 0; i < fontNames.length; i++) {
-                final String fontCode = fontCodes[i];
+            for (int i = 0; i < fontNames.size(); i++) {
+                final String fontCode = fontCodes.get(i);
+                boolean selected = fontCode.equals(elem.getFontFamily());
                 LinearLayout row = new LinearLayout(this);
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setGravity(android.view.Gravity.CENTER_VERTICAL);
                 row.setPadding(padding, padding, padding, padding);
-                row.setBackgroundColor(fontCode.equals(elem.getFontFamily())
-                        ? Color.rgb(44, 61, 49) : Color.rgb(24, 31, 26));
+                row.setBackgroundColor(selected ? Color.rgb(44, 61, 49) : Color.rgb(24, 31, 26));
 
                 LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -1048,14 +1065,13 @@ import android.widget.SeekBar;
                 row.setLayoutParams(rowParams);
 
                 TextView name = new TextView(this);
-                name.setText(fontNames[i] + (fontCode.equals(elem.getFontFamily()) ? "  ✓" : ""));
-                name.setTextColor(fontCode.equals(elem.getFontFamily())
-                        ? Color.rgb(183, 255, 0) : Color.WHITE);
-                name.setTextSize(14);
+                name.setText(fontNames.get(i) + (selected ? "  ✓" : ""));
+                name.setTextColor(selected ? Color.rgb(183, 255, 0) : Color.WHITE);
+                name.setTextSize(13);
                 name.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
 
                 TextView preview = new TextView(this);
-                preview.setText("Aa Bb 123");
+                preview.setText("Aa Gg 0123");
                 preview.setTextColor(Color.rgb(240, 235, 221));
                 preview.setTextSize(19);
                 preview.setTypeface(createTypefaceForFamily(fontCode));
@@ -1074,46 +1090,82 @@ import android.widget.SeekBar;
                 list.addView(row);
             }
 
+            dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                    .setOnClickListener(v -> {
+                        dialog.dismiss();
+                        fontPickerLauncher.launch("*/*");
+                    }));
             dialog.show();
         }
 
         private android.graphics.Typeface createTypefaceForFamily(String family) {
-            String typefaceName;
-            switch (family) {
-                case "SERIF":
-                case "SERIF_BOLD":
-                    typefaceName = "serif";
-                    break;
-                case "MONOSPACE":
-                    typefaceName = "monospace";
-                    break;
-                case "CONDENSED":
-                    typefaceName = "sans-serif-condensed";
-                    break;
-                case "SANS_LIGHT":
-                    typefaceName = "sans-serif-light";
-                    break;
-                case "SANS_MEDIUM":
-                    typefaceName = "sans-serif-medium";
-                    break;
-                case "SANS_BLACK":
-                    typefaceName = "sans-serif-black";
-                    break;
-                case "SANS_ROUNDED":
-                    typefaceName = "sans-serif-rounded";
-                    break;
-                case "SANS_THIN":
-                    typefaceName = "sans-serif-thin";
-                    break;
-                default:
-                    typefaceName = "sans-serif";
-                    break;
+            if (family != null && family.startsWith("CUSTOM_FONT:")) {
+                File fontFile = new File(getFilesDir(), family.substring("CUSTOM_FONT:".length()));
+                if (fontFile.exists()) {
+                    try { return android.graphics.Typeface.createFromFile(fontFile); }
+                    catch (RuntimeException ignored) { }
+                }
             }
-            int style = "SERIF_BOLD".equals(family)
-                    ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL;
-            return android.graphics.Typeface.create(typefaceName, style);
+            String familyName;
+            int style = android.graphics.Typeface.NORMAL;
+            switch (family == null ? "SANS_SERIF" : family) {
+                case "SERIF": familyName = "serif"; break;
+                case "MONOSPACE": familyName = "monospace"; break;
+                case "CONDENSED": familyName = "sans-serif-condensed"; break;
+                case "CONDENSED_BOLD": familyName = "sans-serif-condensed"; style = android.graphics.Typeface.BOLD; break;
+                case "SANS_LIGHT": familyName = "sans-serif-light"; break;
+                case "SANS_THIN": familyName = "sans-serif-thin"; break;
+                case "SANS_MEDIUM": familyName = "sans-serif-medium"; break;
+                case "SANS_BLACK": familyName = "sans-serif-black"; break;
+                case "SANS_EXTRA_BLACK": familyName = "sans-serif-black"; style = android.graphics.Typeface.BOLD; break;
+                case "SANS_ROUNDED": familyName = "sans-serif-rounded"; break;
+                case "CURSIVE": familyName = "cursive"; break;
+                case "CASUAL": familyName = "casual"; break;
+                case "FANTASY": familyName = "fantasy"; break;
+                case "SERIF_BOLD": familyName = "serif"; style = android.graphics.Typeface.BOLD; break;
+                case "SERIF_ITALIC": familyName = "serif"; style = android.graphics.Typeface.ITALIC; break;
+                case "SANS_BOLD_ITALIC": familyName = "sans-serif"; style = android.graphics.Typeface.BOLD_ITALIC; break;
+                case "SMALL_CAPS": familyName = "sans-serif-smallcaps"; break;
+                default: familyName = "sans-serif"; break;
+            }
+            return android.graphics.Typeface.create(familyName, style);
         }
-    
+
+        private void importCustomFont(Uri uri) {
+            String extension = ".ttf";
+            android.database.Cursor cursor = getContentResolver().query(
+                    uri, new String[]{android.provider.OpenableColumns.DISPLAY_NAME},
+                    null, null, null);
+            if (cursor != null) {
+                try {
+                    if (cursor.moveToFirst()) {
+                        String sourceName = cursor.getString(0);
+                        if (sourceName != null && sourceName.toLowerCase(java.util.Locale.ROOT).endsWith(".otf")) {
+                            extension = ".otf";
+                        } else if (sourceName != null && sourceName.toLowerCase(java.util.Locale.ROOT).endsWith(".ttc")) {
+                            extension = ".ttc";
+                        }
+                    }
+                } finally {
+                    cursor.close();
+                }
+            }
+            try (InputStream input = getContentResolver().openInputStream(uri)) {
+                if (input == null) throw new java.io.IOException("Não foi possível abrir o arquivo");
+                String fileName = "recap_font_" + System.currentTimeMillis() + extension;
+                File destination = new File(getFilesDir(), fileName);
+                try (FileOutputStream output = new FileOutputStream(destination)) {
+                    byte[] buffer = new byte[8192];
+                    int count;
+                    while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+                }
+                android.graphics.Typeface.createFromFile(destination);
+                Toast.makeText(this, "Fonte importada! Abra o seletor novamente para usá-la.", Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                Toast.makeText(this, "Não foi possível importar essa fonte. Use um arquivo TTF ou OTF válido.", Toast.LENGTH_LONG).show();
+            }
+        }
+
         private void toggleAlignment() {
             RecapElementModel elem = canvasView.getSelectedElement();
             if (elem == null) return;
