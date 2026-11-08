@@ -805,20 +805,112 @@ import android.widget.SeekBar;
         private void showFontPickerDialog() {
             RecapElementModel elem = canvasView.getSelectedElement();
             if (elem == null) return;
-    
-            String[] fonts = {"Sans-Serif", "Sans-Serif Condensed", "Serif Clássico", "Monospace"};
-            String[] codes = {"SANS_SERIF", "CONDENSED", "SERIF", "MONOSPACE"};
-    
-            new AlertDialog.Builder(this)
-                    .setTitle("Tipografia")
-                    .setItems(fonts, (dialog, which) -> {
-                        undoRedoManager.pushState(currentTemplate);
-                        elem.setFontFamily(codes[which]);
-                        canvasView.invalidate();
-                        updateUndoRedoButtons();
-                    })
+
+            String[] fontNames = {
+                    "Sans padrão", "Serifada clássica", "Monoespaçada",
+                    "Condensada", "Sans leve", "Sans média",
+                    "Sans pesada", "Arredondada", "Serifada em negrito",
+                    "Sans fina"
+            };
+            String[] fontCodes = {
+                    "SANS_SERIF", "SERIF", "MONOSPACE", "CONDENSED",
+                    "SANS_LIGHT", "SANS_MEDIUM", "SANS_BLACK",
+                    "SANS_ROUNDED", "SERIF_BOLD", "SANS_THIN"
+            };
+
+            int padding = (int) (12 * getResources().getDisplayMetrics().density);
+            android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+            LinearLayout list = new LinearLayout(this);
+            list.setOrientation(LinearLayout.VERTICAL);
+            list.setPadding(padding, padding / 2, padding, padding / 2);
+            scroll.addView(list);
+
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setTitle("Escolha uma fonte")
+                    .setView(scroll)
                     .setNegativeButton("Cancelar", null)
-                    .show();
+                    .create();
+
+            for (int i = 0; i < fontNames.length; i++) {
+                final String fontCode = fontCodes[i];
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                row.setPadding(padding, padding, padding, padding);
+                row.setBackgroundColor(fontCode.equals(elem.getFontFamily())
+                        ? Color.rgb(44, 61, 49) : Color.rgb(24, 31, 26));
+
+                LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                rowParams.bottomMargin = padding / 2;
+                row.setLayoutParams(rowParams);
+
+                TextView name = new TextView(this);
+                name.setText(fontNames[i] + (fontCode.equals(elem.getFontFamily()) ? "  ✓" : ""));
+                name.setTextColor(fontCode.equals(elem.getFontFamily())
+                        ? Color.rgb(183, 255, 0) : Color.WHITE);
+                name.setTextSize(14);
+                name.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+
+                TextView preview = new TextView(this);
+                preview.setText("Aa Bb 123");
+                preview.setTextColor(Color.rgb(240, 235, 221));
+                preview.setTextSize(19);
+                preview.setTypeface(createTypefaceForFamily(fontCode));
+
+                row.addView(name, new LinearLayout.LayoutParams(0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+                row.addView(preview);
+
+                row.setOnClickListener(v -> {
+                    undoRedoManager.pushState(currentTemplate);
+                    elem.setFontFamily(fontCode);
+                    canvasView.invalidate();
+                    updateUndoRedoButtons();
+                    dialog.dismiss();
+                });
+                list.addView(row);
+            }
+
+            dialog.show();
+        }
+
+        private android.graphics.Typeface createTypefaceForFamily(String family) {
+            String typefaceName;
+            switch (family) {
+                case "SERIF":
+                case "SERIF_BOLD":
+                    typefaceName = "serif";
+                    break;
+                case "MONOSPACE":
+                    typefaceName = "monospace";
+                    break;
+                case "CONDENSED":
+                    typefaceName = "sans-serif-condensed";
+                    break;
+                case "SANS_LIGHT":
+                    typefaceName = "sans-serif-light";
+                    break;
+                case "SANS_MEDIUM":
+                    typefaceName = "sans-serif-medium";
+                    break;
+                case "SANS_BLACK":
+                    typefaceName = "sans-serif-black";
+                    break;
+                case "SANS_ROUNDED":
+                    typefaceName = "sans-serif-rounded";
+                    break;
+                case "SANS_THIN":
+                    typefaceName = "sans-serif-thin";
+                    break;
+                default:
+                    typefaceName = "sans-serif";
+                    break;
+            }
+            int style = "SERIF_BOLD".equals(family)
+                    ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL;
+            return android.graphics.Typeface.create(typefaceName, style);
         }
     
         private void toggleAlignment() {
