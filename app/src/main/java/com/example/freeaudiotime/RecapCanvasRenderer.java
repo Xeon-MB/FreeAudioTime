@@ -273,25 +273,178 @@ public class RecapCanvasRenderer {
     }
 
     private static void renderSticker(Canvas canvas, RectF destRect, String stickerType, String colorHex) {
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setColor(parseColor(colorHex, Color.rgb(183, 255, 0)));
-        p.setTextSize(Math.min(destRect.width(), destRect.height()) * 0.8f);
-        p.setTextAlign(Paint.Align.CENTER);
+        drawStickerPreview(canvas, destRect, stickerType, colorHex);
+    }
 
-        String emoji = "🎵";
-        if ("DISCO".equalsIgnoreCase(stickerType)) emoji = "💿";
-        else if ("NOTA".equalsIgnoreCase(stickerType)) emoji = "🎵";
-        else if ("ONDA".equalsIgnoreCase(stickerType)) emoji = "🌊";
-        else if ("STAR".equalsIgnoreCase(stickerType)) emoji = "⭐";
-        else if ("HEART".equalsIgnoreCase(stickerType)) emoji = "❤️";
-        else if ("FIRE".equalsIgnoreCase(stickerType)) emoji = "🔥";
-        else if ("TROPHY".equalsIgnoreCase(stickerType)) emoji = "🏆";
-        else if ("CROWN".equalsIgnoreCase(stickerType)) emoji = "👑";
-        else if ("HEADPHONES".equalsIgnoreCase(stickerType)) emoji = "🎧";
+    /** Draws a platform-independent vector sticker for both the canvas and picker preview. */
+    public static void drawStickerPreview(Canvas canvas, RectF bounds, String stickerType, String colorHex) {
+        if (canvas == null || bounds == null || bounds.width() <= 0 || bounds.height() <= 0) return;
 
-        Paint.FontMetrics fm = p.getFontMetrics();
-        float baseline = destRect.centerY() - (fm.ascent + fm.descent) / 2f;
-        canvas.drawText(emoji, destRect.centerX(), baseline, p);
+        int accent = parseColor(colorHex, Color.rgb(183, 255, 0));
+        Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+        stroke.setStyle(Paint.Style.STROKE);
+        stroke.setStrokeCap(Paint.Cap.ROUND);
+        stroke.setStrokeJoin(Paint.Join.ROUND);
+        stroke.setStrokeWidth(7f);
+        stroke.setColor(accent);
+
+        canvas.save();
+        canvas.translate(bounds.left, bounds.top);
+        canvas.scale(bounds.width() / 100f, bounds.height() / 100f);
+
+        String type = stickerType == null ? "" : stickerType.toUpperCase(java.util.Locale.ROOT);
+        Path path = new Path();
+
+        switch (type) {
+            case "DISCO":
+                fill.setColor(Color.rgb(24, 29, 26));
+                canvas.drawCircle(50, 50, 44, fill);
+                stroke.setColor(accent);
+                stroke.setStrokeWidth(4f);
+                canvas.drawCircle(50, 50, 40, stroke);
+                canvas.drawCircle(50, 50, 27, stroke);
+                canvas.drawCircle(50, 50, 13, stroke);
+                fill.setColor(accent);
+                canvas.drawCircle(50, 50, 5, fill);
+                break;
+            case "NOTA":
+            case "MUSIC_NOTE":
+                path.moveTo(58, 18); path.lineTo(58, 68);
+                path.lineTo(38, 73); path.lineTo(38, 35);
+                path.lineTo(75, 27); path.lineTo(75, 62);
+                canvas.drawPath(path, stroke);
+                fill.setColor(accent);
+                canvas.drawOval(24, 65, 45, 82, fill);
+                canvas.drawOval(61, 58, 82, 75, fill);
+                break;
+            case "ONDA":
+                stroke.setStrokeWidth(8f);
+                for (int i = 0; i < 3; i++) {
+                    float y = 30 + i * 20;
+                    path.reset();
+                    path.moveTo(8, y);
+                    path.cubicTo(25, y - 18, 25, y + 18, 42, y);
+                    path.cubicTo(59, y - 18, 59, y + 18, 76, y);
+                    path.cubicTo(84, y - 8, 90, y - 5, 94, y);
+                    canvas.drawPath(path, stroke);
+                }
+                break;
+            case "STAR":
+            case "SPARKLE":
+                for (int i = 0; i < (type.equals("SPARKLE") ? 2 : 1); i++) {
+                    float cx = i == 0 ? 50 : 78, cy = i == 0 ? 50 : 24, r = i == 0 ? 42 : 15;
+                    path.reset();
+                    for (int j = 0; j < 10; j++) {
+                        double a = -Math.PI / 2 + j * Math.PI / 5;
+                        float rr = (j % 2 == 0) ? r : r * 0.42f;
+                        float px = cx + (float) Math.cos(a) * rr;
+                        float py = cy + (float) Math.sin(a) * rr;
+                        if (j == 0) path.moveTo(px, py); else path.lineTo(px, py);
+                    }
+                    path.close();
+                    fill.setColor(accent);
+                    canvas.drawPath(path, fill);
+                }
+                break;
+            case "HEART":
+                path.moveTo(50, 84);
+                path.cubicTo(42, 77, 8, 54, 8, 32);
+                path.cubicTo(8, 8, 37, 4, 50, 25);
+                path.cubicTo(63, 4, 92, 8, 92, 32);
+                path.cubicTo(92, 54, 58, 77, 50, 84);
+                path.close();
+                fill.setColor(accent);
+                canvas.drawPath(path, fill);
+                break;
+            case "FIRE":
+                path.moveTo(50, 92);
+                path.cubicTo(12, 88, 18, 54, 39, 34);
+                path.cubicTo(38, 52, 53, 53, 52, 12);
+                path.cubicTo(84, 42, 91, 67, 72, 87);
+                path.cubicTo(66, 95, 57, 94, 50, 92);
+                path.close();
+                fill.setColor(accent);
+                canvas.drawPath(path, fill);
+                fill.setColor(Color.rgb(255, 190, 70));
+                path.reset();
+                path.moveTo(51, 82); path.cubicTo(33, 71, 44, 57, 55, 45);
+                path.cubicTo(57, 62, 70, 67, 62, 81); path.close();
+                canvas.drawPath(path, fill);
+                break;
+            case "TROPHY":
+                fill.setColor(accent);
+                path.moveTo(25, 15); path.lineTo(75, 15); path.lineTo(70, 48);
+                path.cubicTo(67, 65, 58, 70, 50, 70);
+                path.cubicTo(42, 70, 33, 65, 30, 48); path.close();
+                canvas.drawPath(path, fill);
+                stroke.setColor(accent);
+                path.reset(); path.moveTo(25, 25); path.cubicTo(5, 22, 8, 52, 34, 55);
+                canvas.drawPath(path, stroke);
+                path.reset(); path.moveTo(75, 25); path.cubicTo(95, 22, 92, 52, 66, 55);
+                canvas.drawPath(path, stroke);
+                fill.setColor(Color.rgb(35, 40, 35));
+                canvas.drawRect(44, 68, 56, 82, fill);
+                canvas.drawRoundRect(30, 82, 70, 94, 5, 5, fill);
+                break;
+            case "CROWN":
+                path.moveTo(10, 30); path.lineTo(30, 48); path.lineTo(42, 15);
+                path.lineTo(58, 48); path.lineTo(78, 15); path.lineTo(90, 30);
+                path.lineTo(82, 72); path.lineTo(18, 72); path.close();
+                fill.setColor(accent);
+                canvas.drawPath(path, fill);
+                stroke.setColor(Color.rgb(30, 35, 30));
+                canvas.drawLine(20, 82, 80, 82, stroke);
+                break;
+            case "HEADPHONES":
+                stroke.setColor(accent);
+                stroke.setStrokeWidth(11f);
+                canvas.drawArc(18, 12, 82, 82, 180, 180, false, stroke);
+                fill.setColor(accent);
+                canvas.drawRoundRect(12, 48, 30, 82, 7, 7, fill);
+                canvas.drawRoundRect(70, 48, 88, 82, 7, 7, fill);
+                break;
+            case "CASSETTE":
+                fill.setColor(Color.rgb(30, 36, 31));
+                canvas.drawRoundRect(8, 18, 92, 82, 8, 8, fill);
+                stroke.setColor(accent);
+                canvas.drawRoundRect(8, 18, 92, 82, 8, 8, stroke);
+                canvas.drawCircle(32, 50, 14, stroke);
+                canvas.drawCircle(68, 50, 14, stroke);
+                canvas.drawLine(32, 50, 68, 50, stroke);
+                canvas.drawLine(24, 72, 76, 72, stroke);
+                break;
+            case "MIC":
+                fill.setColor(accent);
+                canvas.drawRoundRect(38, 10, 62, 58, 12, 12, fill);
+                stroke.setColor(accent);
+                canvas.drawArc(25, 25, 75, 75, 0, 180, false, stroke);
+                canvas.drawLine(50, 75, 50, 88, stroke);
+                canvas.drawLine(35, 88, 65, 88, stroke);
+                break;
+            case "EQ":
+                fill.setColor(accent);
+                canvas.drawRoundRect(12, 48, 25, 88, 5, 5, fill);
+                canvas.drawRoundRect(32, 20, 45, 88, 5, 5, fill);
+                canvas.drawRoundRect(52, 35, 65, 88, 5, 5, fill);
+                canvas.drawRoundRect(72, 8, 85, 88, 5, 5, fill);
+                break;
+            case "SPEAKER":
+                fill.setColor(accent);
+                path.moveTo(12, 35); path.lineTo(35, 35); path.lineTo(65, 15);
+                path.lineTo(65, 85); path.lineTo(35, 65); path.lineTo(12, 65); path.close();
+                canvas.drawPath(path, fill);
+                stroke.setColor(accent);
+                canvas.drawArc(55, 25, 95, 75, -60, 120, false, stroke);
+                canvas.drawArc(55, 10, 110, 90, -60, 120, false, stroke);
+                break;
+            default:
+                fill.setColor(accent);
+                canvas.drawCircle(50, 50, 35, fill);
+                break;
+        }
+
+        canvas.restore();
     }
 
     private static void renderTextElement(
