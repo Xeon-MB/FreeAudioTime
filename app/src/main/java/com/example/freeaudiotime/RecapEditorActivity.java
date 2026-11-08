@@ -85,6 +85,13 @@ import android.widget.SeekBar;
                         saveCustomImageElement(uri);
                     }
                 });
+
+        private final ActivityResultLauncher<String> fontPickerLauncher =
+                registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                    if (uri != null) {
+                        importCustomFont(uri);
+                    }
+                });
 @Override
         protected void onCreate(Bundle savedInstanceState) {
             ThemeManager.applySavedTheme(this);
