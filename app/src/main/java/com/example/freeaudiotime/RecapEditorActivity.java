@@ -71,6 +71,13 @@ import android.widget.SeekBar;
         private int dynamicAccentColor = 0;
     
         private final UndoRedoManager undoRedoManager = new UndoRedoManager();
+
+        private final ActivityResultLauncher<String> stickerImportLauncher =
+                registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                    if (uri != null) {
+                        saveCustomStickerElement(uri);
+                    }
+                });
     
         private final ActivityResultLauncher<String> imagePickerLauncher =
                 registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
