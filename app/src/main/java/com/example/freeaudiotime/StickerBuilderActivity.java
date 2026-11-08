@@ -65,6 +65,8 @@ public class StickerBuilderActivity extends AppCompatActivity {
 
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
+        top.setPadding(dp(4), dp(2), dp(4), dp(2));
+        top.setBackgroundColor(Color.rgb(24, 31, 26));
         addButton(top, "Voltar", v -> finish());
         addButton(top, "Desfazer", v -> drawingView.undo());
         addButton(top, "Refazer", v -> drawingView.redo());
@@ -236,7 +238,9 @@ public class StickerBuilderActivity extends AppCompatActivity {
         Button button = new Button(this);
         button.setText(label);
         button.setTextSize(10);
+        button.setTextColor(Color.WHITE);
         button.setPadding(dp(3), 0, dp(3), 0);
+        button.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(38, 49, 41)));
         button.setOnClickListener(listener);
         row.addView(button, new LinearLayout.LayoutParams(0, dp(44), 1f));
     }
@@ -716,25 +720,44 @@ public class StickerBuilderActivity extends AppCompatActivity {
             Toast.makeText(this, "Selecione um texto no canvas primeiro.", Toast.LENGTH_SHORT).show();
             return;
         }
-        String[] names = {
+        java.util.ArrayList<String> names = new java.util.ArrayList<>(java.util.Arrays.asList(
                 "Sans — padrão", "Serif — editorial", "Monospace — máquina",
                 "Condensada — pôster", "Sans leve", "Sans fina", "Sans média",
-                "Sans pesada", "Arredondada", "Cursiva — manuscrita", "Casual", "Fantasy",
-                "Serif em negrito", "Serif itálica", "Sans negrito itálica"
-        };
-        String[] codes = {
+                "Sans pesada", "Sans extra pesada", "Arredondada", "Cursiva — manuscrita",
+                "Casual", "Fantasy", "Serif em negrito", "Serif itálica",
+                "Sans negrito itálica", "Small caps", "Condensada negrito"
+        ));
+        java.util.ArrayList<String> codes = new java.util.ArrayList<>(java.util.Arrays.asList(
                 "SANS_SERIF", "SERIF", "MONOSPACE", "CONDENSED", "SANS_LIGHT",
-                "SANS_THIN", "SANS_MEDIUM", "SANS_BLACK", "SANS_ROUNDED", "CURSIVE",
-                "CASUAL", "FANTASY", "SERIF_BOLD", "SERIF_ITALIC", "SANS_BOLD_ITALIC"
-        };
+                "SANS_THIN", "SANS_MEDIUM", "SANS_BLACK", "SANS_EXTRA_BLACK",
+                "SANS_ROUNDED", "CURSIVE", "CASUAL", "FANTASY", "SERIF_BOLD",
+                "SERIF_ITALIC", "SANS_BOLD_ITALIC", "SMALL_CAPS", "CONDENSED_BOLD"
+        ));
+        File[] importedFonts = getFilesDir().listFiles((dir, name) ->
+                name.startsWith("recap_font_") &&
+                (name.endsWith(".ttf") || name.endsWith(".otf") || name.endsWith(".ttc")));
+        if (importedFonts != null) {
+            java.util.Arrays.sort(importedFonts, java.util.Comparator.comparing(File::getName));
+            for (File fontFile : importedFonts) {
+                codes.add("CUSTOM_FONT:" + fontFile.getName());
+                names.add("Importada: " + fontFile.getName().replaceFirst("^recap_font_", ""));
+            }
+        }
         new AlertDialog.Builder(this).setTitle("Escolha uma fonte")
-                .setItems(names, (dialog, which) -> {
-                    selected.fontFamily = codes[which];
+                .setItems(names.toArray(new String[0]), (dialog, which) -> {
+                    selected.fontFamily = codes.get(which);
                     drawingView.invalidate();
                 }).setNegativeButton("Cancelar", null).show();
     }
 
     private Typeface createTypeface(String family) {
+        if (family != null && family.startsWith("CUSTOM_FONT:")) {
+            File fontFile = new File(getFilesDir(), family.substring("CUSTOM_FONT:".length()));
+            if (fontFile.exists()) {
+                try { return Typeface.createFromFile(fontFile); }
+                catch (RuntimeException ignored) { }
+            }
+        }
         if ("SERIF".equals(family)) return Typeface.create("serif", Typeface.NORMAL);
         if ("MONOSPACE".equals(family)) return Typeface.create("monospace", Typeface.NORMAL);
         if ("CONDENSED".equals(family)) return Typeface.create("sans-serif-condensed", Typeface.NORMAL);
@@ -742,6 +765,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
         if ("SANS_THIN".equals(family)) return Typeface.create("sans-serif-thin", Typeface.NORMAL);
         if ("SANS_MEDIUM".equals(family)) return Typeface.create("sans-serif-medium", Typeface.NORMAL);
         if ("SANS_BLACK".equals(family)) return Typeface.create("sans-serif-black", Typeface.NORMAL);
+        if ("SANS_EXTRA_BLACK".equals(family)) return Typeface.create("sans-serif-black", Typeface.BOLD);
         if ("SANS_ROUNDED".equals(family)) return Typeface.create("sans-serif-rounded", Typeface.NORMAL);
         if ("CURSIVE".equals(family)) return Typeface.create("cursive", Typeface.NORMAL);
         if ("CASUAL".equals(family)) return Typeface.create("casual", Typeface.NORMAL);
@@ -749,6 +773,8 @@ public class StickerBuilderActivity extends AppCompatActivity {
         if ("SERIF_BOLD".equals(family)) return Typeface.create("serif", Typeface.BOLD);
         if ("SERIF_ITALIC".equals(family)) return Typeface.create("serif", Typeface.ITALIC);
         if ("SANS_BOLD_ITALIC".equals(family)) return Typeface.create("sans-serif", Typeface.BOLD_ITALIC);
+        if ("SMALL_CAPS".equals(family)) return Typeface.create("sans-serif-smallcaps", Typeface.NORMAL);
+        if ("CONDENSED_BOLD".equals(family)) return Typeface.create("sans-serif-condensed", Typeface.BOLD);
         return Typeface.create("sans-serif", Typeface.BOLD);
     }
 
