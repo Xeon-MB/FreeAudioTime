@@ -121,6 +121,11 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 drawingView.setColor(color);
             });
         }
+        Button customColor = new Button(this);
+        customColor.setText("HEX");
+        customColor.setTextSize(10);
+        customColor.setOnClickListener(v -> showHexColorDialog());
+        colors.addView(customColor, new LinearLayout.LayoutParams(dp(58), dp(38)));
         root.addView(colors);
 
         LinearLayout sizeRow = new LinearLayout(this);
@@ -196,6 +201,25 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 .show();
     }
 
+    private void showHexColorDialog() {
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setSingleLine(true);
+        input.setHint("#RRGGBB");
+        new AlertDialog.Builder(this)
+                .setTitle("Cor personalizada")
+                .setView(input)
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Aplicar", (dialog, which) -> {
+                    try {
+                        currentColor = Color.parseColor(input.getText().toString().trim());
+                        drawingView.setColor(currentColor);
+                    } catch (IllegalArgumentException e) {
+                        Toast.makeText(this, "Use uma cor hexadecimal válida.", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
+    }
+
     private void confirmClear() {
         new AlertDialog.Builder(this)
                 .setTitle("Limpar desenho?")
@@ -242,31 +266,24 @@ public class StickerBuilderActivity extends AppCompatActivity {
         private float offsetX;
         private float offsetY;
         private DrawCommand active;
+        private String pendingText;
 
         StickerDrawingView() {
             super(StickerBuilderActivity.this);
             setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         }
 
-        void setTool(Tool next) { tool = next; invalidate(); }
+        void setTool(Tool next) { tool = next; pendingText = null; invalidate(); }
         void setColor(int next) { color = next; }
         void setStrokeWidth(float next) { strokeWidth = next; }
 
         boolean hasArtwork() { return !commands.isEmpty(); }
 
         void addText(String text, int textColor) {
-            saveUndo();
-            DrawCommand command = new DrawCommand();
-            command.tool = Tool.BRUSH;
-            command.kind = "TEXT";
-            command.text = text;
-            command.color = textColor;
-            command.textSize = 34f;
-            command.x1 = ART_SIZE / 2f;
-            command.y1 = ART_SIZE / 2f;
-            commands.add(command);
-            redo.clear();
-            invalidate();
+            pendingText = text;
+            color = textColor;
+            Toast.makeText(StickerBuilderActivity.this,
+                    "Toque no canvas para posicionar o texto.", Toast.LENGTH_SHORT).show();
         }
 
         void clearArtwork() {
@@ -316,10 +333,10 @@ public class StickerBuilderActivity extends AppCompatActivity {
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            drawCheckerboard(canvas);
             scale = Math.min(getWidth(), getHeight()) / (float) ART_SIZE;
             offsetX = (getWidth() - ART_SIZE * scale) / 2f;
             offsetY = (getHeight() - ART_SIZE * scale) / 2f;
+            drawCheckerboard(canvas);
 
             canvas.saveLayer(0, 0, getWidth(), getHeight(), null);
             canvas.save();
@@ -412,6 +429,22 @@ public class StickerBuilderActivity extends AppCompatActivity {
             float[] point = toArtwork(event.getX(), event.getY());
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
+                    if (pendingText != null) {
+                        saveUndo();
+                        DrawCommand textCommand = new DrawCommand();
+                        textCommand.tool = Tool.BRUSH;
+                        textCommand.kind = "TEXT";
+                        textCommand.text = pendingText;
+                        textCommand.color = color;
+                        textCommand.textSize = Math.max(24f, strokeWidth * 4f);
+                        textCommand.x1 = point[0];
+                        textCommand.y1 = point[1];
+                        commands.add(textCommand);
+                        pendingText = null;
+                        redo.clear();
+                        invalidate();
+                        return true;
+                    }
                     saveUndo();
                     active = new DrawCommand();
                     active.tool = tool;
