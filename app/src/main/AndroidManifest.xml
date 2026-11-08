@@ -13,6 +13,10 @@
         android:theme="@style/Theme.FreeAudioTime">
 
         <activity
+            android:name=".StickerBuilderActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".RecapActivity"
             android:exported="false" />
 

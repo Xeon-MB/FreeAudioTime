@@ -72,6 +72,16 @@ import android.widget.SeekBar;
     
         private final UndoRedoManager undoRedoManager = new UndoRedoManager();
 
+        private final ActivityResultLauncher<Intent> stickerBuilderLauncher =
+                registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        String stickerPath = result.getData().getStringExtra(StickerBuilderActivity.EXTRA_STICKER_PATH);
+                        if (stickerPath != null && !stickerPath.isEmpty()) {
+                            addCreatedStickerElement(stickerPath);
+                        }
+                    }
+                });
+
         private final ActivityResultLauncher<String> stickerImportLauncher =
                 registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                     if (uri != null) {
@@ -92,8 +102,7 @@ import android.widget.SeekBar;
                         importCustomFont(uri);
                     }
                 });
-    
-        @Override
+@Override
         protected void onCreate(Bundle savedInstanceState) {
             ThemeManager.applySavedTheme(this);
             super.onCreate(savedInstanceState);
@@ -688,62 +697,22 @@ import android.widget.SeekBar;
         }
     
         private void showCreateStickerDialog() {
-            EditText textInput = new EditText(this);
-            textInput.setHint("Texto do sticker");
-            textInput.setSingleLine(true);
-            textInput.setTextSize(18);
+            stickerBuilderLauncher.launch(new Intent(this, StickerBuilderActivity.class));
+        }
 
-            android.widget.Spinner styleSpinner = new android.widget.Spinner(this);
-            String[] styles = {"Verde neon", "Ciano", "Rosa", "Amarelo", "Branco"};
-            android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
-                    this, android.R.layout.simple_spinner_item, styles);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            styleSpinner.setAdapter(adapter);
-
-            LinearLayout content = new LinearLayout(this);
-            content.setOrientation(LinearLayout.VERTICAL);
-            content.setPadding(dp(20), dp(8), dp(20), dp(4));
-            content.addView(textInput);
-            TextView styleLabel = new TextView(this);
-            styleLabel.setText("Estilo do fundo");
-            styleLabel.setTextColor(Color.WHITE);
-            styleLabel.setPadding(0, dp(12), 0, dp(4));
-            content.addView(styleLabel);
-            content.addView(styleSpinner);
-
-            new AlertDialog.Builder(this)
-                    .setTitle("Criar sticker de texto")
-                    .setView(content)
-                    .setPositiveButton("Criar sticker", (dialog, which) -> {
-                        String stickerText = textInput.getText().toString().trim();
-                        if (stickerText.isEmpty()) {
-                            Toast.makeText(this, "Digite um texto para o sticker.", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                        String[] colors = {"#B7FF00", "#00E5FF", "#FF5AA5", "#FFD54F", "#F0EBDD"};
-                        String background = colors[styleSpinner.getSelectedItemPosition()];
-
-                        undoRedoManager.pushState(currentTemplate);
-                        RecapElementModel sticker = new RecapElementModel(
-                                RecapElementBinding.CUSTOM_STATIC_TEXT,
-                                0.15f, 0.42f, 0.70f, 0.12f
-                        );
-                        sticker.setCustomText(stickerText);
-                        sticker.setFontFamily("SANS_BLACK");
-                        sticker.setFontSizeSp(24f);
-                        sticker.setBold(true);
-                        sticker.setAlignment("CENTER");
-                        sticker.setFontColorHex("#080A08");
-                        sticker.setBackgroundColorHex(background);
-                        sticker.setZIndex(currentTemplate.getElements().size());
-                        currentTemplate.getElements().add(sticker);
-                        canvasView.setSelectedElementId(sticker.getId());
-                        canvasView.invalidate();
-                        updateUndoRedoButtons();
-                    })
-                    .setNegativeButton("Cancelar", null)
-                    .show();
+        private void addCreatedStickerElement(String stickerPath) {
+            undoRedoManager.pushState(currentTemplate);
+            RecapElementModel sticker = new RecapElementModel(
+                    RecapElementBinding.CUSTOM_STATIC_IMAGE,
+                    0.31f, 0.36f, 0.38f, 0.25f
+            );
+            sticker.setImagePath(stickerPath);
+            sticker.setZIndex(currentTemplate.getElements().size());
+            currentTemplate.getElements().add(sticker);
+            canvasView.setSelectedElementId(sticker.getId());
+            canvasView.invalidate();
+            updateUndoRedoButtons();
+            Toast.makeText(this, "Sticker criado e adicionado ao recap!", Toast.LENGTH_SHORT).show();
         }
 
         private void saveCustomStickerElement(Uri uri) {
