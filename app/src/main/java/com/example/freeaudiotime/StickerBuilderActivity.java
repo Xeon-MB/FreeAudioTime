@@ -13,6 +13,7 @@ import android.graphics.SweepGradient;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -24,10 +25,17 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -49,6 +57,11 @@ public class StickerBuilderActivity extends AppCompatActivity {
     private boolean movingSelectedText = false;
     private float lastTouchX, lastTouchY;
 
+    private final ActivityResultLauncher<String> fontPickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) importCustomFont(uri);
+            });
+
     private enum Tool { BRUSH, LINE, RECTANGLE, ELLIPSE, ERASER }
 
     @Override
@@ -56,12 +69,19 @@ public class StickerBuilderActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         getWindow().setStatusBarColor(Color.rgb(10, 14, 11));
         getWindow().setNavigationBarColor(Color.rgb(10, 14, 11));
-        getWindow().getDecorView().setSystemUiVisibility(0);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(10, 14, 11));
-        root.setPadding(dp(10), dp(8), dp(10), dp(10));
+        root.setPadding(dp(10), 0, dp(10), 0);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(dp(10), systemBars.top + dp(8),
+                    dp(10), systemBars.bottom + dp(10));
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(root);
 
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
@@ -137,7 +157,13 @@ public class StickerBuilderActivity extends AppCompatActivity {
         customColor.setTextSize(10);
         customColor.setOnClickListener(v -> showColorWheelDialog());
         colors.addView(customColor, new LinearLayout.LayoutParams(dp(112), dp(38)));
-        root.addView(colors);
+        HorizontalScrollView colorsScroll = new HorizontalScrollView(this);
+        colorsScroll.setHorizontalScrollBarEnabled(false);
+        colorsScroll.setFillViewport(false);
+        colorsScroll.addView(colors, new HorizontalScrollView.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT));
+        root.addView(colorsScroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(44)));
 
         LinearLayout sizeRow = new LinearLayout(this);
         sizeRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -165,16 +191,29 @@ public class StickerBuilderActivity extends AppCompatActivity {
         Button addText = new Button(this);
         addText.setText("Adicionar texto");
         addText.setOnClickListener(v -> showTextDialog());
-        textActions.addView(addText, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        addText.setTextSize(12);
+        addText.setPadding(dp(8), 0, dp(8), 0);
+        textActions.addView(addText, new LinearLayout.LayoutParams(dp(132), dp(44)));
         Button editText = new Button(this);
         editText.setText("Editar");
         editText.setOnClickListener(v -> editSelectedText());
-        textActions.addView(editText, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        editText.setTextSize(12);
+        editText.setPadding(dp(8), 0, dp(8), 0);
+        textActions.addView(editText, new LinearLayout.LayoutParams(dp(92), dp(44)));
         Button fontText = new Button(this);
         fontText.setText("Fonte");
         fontText.setOnClickListener(v -> showFontPickerDialog());
-        textActions.addView(fontText, new LinearLayout.LayoutParams(0, dp(44), 1f));
-        root.addView(textActions);
+        fontText.setTextSize(12);
+        fontText.setPadding(dp(8), 0, dp(8), 0);
+        textActions.addView(fontText, new LinearLayout.LayoutParams(dp(92), dp(44)));
+
+        HorizontalScrollView textActionsScroll = new HorizontalScrollView(this);
+        textActionsScroll.setHorizontalScrollBarEnabled(false);
+        textActionsScroll.setFillViewport(false);
+        textActionsScroll.addView(textActions, new HorizontalScrollView.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT));
+        root.addView(textActionsScroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
 
         TextView textSizeLabel = new TextView(this);
         textSizeLabel.setText("TAMANHO DO TEXTO");
@@ -263,104 +302,53 @@ public class StickerBuilderActivity extends AppCompatActivity {
     private void showColorWheelDialog() {
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(18), dp(12), dp(18), dp(8));
-        ColorWheelView wheel = new ColorWheelView();
+        int padding = dp(16);
+        content.setPadding(padding, padding, padding, padding);
+
+        ColorWheelView wheel = new ColorWheelView(this);
+        wheel.setColor(currentColor);
+        wheel.setBrightness(1f);
         content.addView(wheel, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(250)));
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(280)));
+
         View preview = new View(this);
-        android.graphics.drawable.GradientDrawable previewBg =
-                new android.graphics.drawable.GradientDrawable();
-        previewBg.setCornerRadius(dp(10));
-        previewBg.setColor(currentColor);
-        preview.setBackground(previewBg);
+        preview.setBackgroundColor(wheel.getColor());
         LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(34));
-        previewParams.topMargin = dp(10);
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(38));
+        previewParams.topMargin = padding / 2;
         content.addView(preview, previewParams);
-        wheel.setOnColorChangedListener(color -> {
-            currentColor = color;
-            previewBg.setColor(color);
-            preview.invalidate();
+
+        TextView brightnessLabel = new TextView(this);
+        brightnessLabel.setText("Brilho");
+        brightnessLabel.setTextColor(Color.WHITE);
+        brightnessLabel.setPadding(0, padding / 2, 0, 0);
+        content.addView(brightnessLabel);
+
+        SeekBar brightness = new SeekBar(this);
+        brightness.setMax(100);
+        brightness.setProgress(100);
+        brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                wheel.setBrightness(Math.max(8, progress) / 100f);
+                preview.setBackgroundColor(wheel.getColor());
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) { }
+            @Override public void onStopTrackingTouch(SeekBar bar) { }
         });
+        wheel.setOnColorChangedListener(preview::setBackgroundColor);
+        content.addView(brightness, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
         new AlertDialog.Builder(this)
                 .setTitle("Escolha uma cor")
                 .setView(content)
-                .setPositiveButton("Aplicar", (dialog, which) -> drawingView.setColor(currentColor))
+                .setPositiveButton("Aplicar", (dialog, which) -> {
+                    currentColor = wheel.getColor();
+                    drawingView.setColor(currentColor);
+                })
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
-
-    private class ColorWheelView extends View {
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final float[] hsv = {0f, 1f, 1f};
-        private android.graphics.RectF bounds = new android.graphics.RectF();
-        private ColorWheelListener listener;
-
-        ColorWheelView() { super(StickerBuilderActivity.this); }
-        void setOnColorChangedListener(ColorWheelListener callback) { listener = callback; }
-
-        private Bitmap wheelBitmap;
-
-        @Override protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            float radius = Math.min(getWidth(), getHeight()) * 0.43f;
-            float cx = getWidth() / 2f, cy = getHeight() / 2f;
-            if (wheelBitmap == null) {
-                int size = 512;
-                int[] pixels = new int[size * size];
-                float center = (size - 1) / 2f;
-                float maxRadius = center;
-                float[] colorHsv = new float[3];
-                for (int y = 0; y < size; y++) {
-                    for (int x = 0; x < size; x++) {
-                        float dx = x - center, dy = y - center;
-                        float distance = (float) Math.sqrt(dx * dx + dy * dy);
-                        int index = y * size + x;
-                        if (distance > maxRadius) {
-                            pixels[index] = Color.TRANSPARENT;
-                        } else {
-                            colorHsv[0] = (float) ((Math.toDegrees(Math.atan2(dy, dx)) + 360f) % 360f);
-                            colorHsv[1] = Math.min(1f, distance / maxRadius);
-                            colorHsv[2] = 1f;
-                            pixels[index] = Color.HSVToColor(colorHsv);
-                        }
-                    }
-                }
-                wheelBitmap = Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888);
-            }
-            paint.setShader(null);
-            paint.setFilterBitmap(true);
-            canvas.drawBitmap(wheelBitmap, null,
-                    new android.graphics.RectF(cx - radius, cy - radius, cx + radius, cy + radius), paint);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(dp(2));
-            paint.setColor(Color.WHITE);
-            canvas.drawCircle(cx, cy, radius, paint);
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(currentColor);
-            canvas.drawCircle(cx, cy, dp(10), paint);
-        }
-
-        @Override public boolean onTouchEvent(MotionEvent event) {
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN
-                    || event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-                float dx = event.getX() - getWidth() / 2f;
-                float dy = event.getY() - getHeight() / 2f;
-                float radius = Math.min(getWidth(), getHeight()) * 0.43f;
-                float angle = (float) Math.toDegrees(Math.atan2(dy, dx));
-                hsv[0] = (angle + 360f) % 360f;
-                hsv[1] = Math.min(1f, (float) Math.sqrt(dx * dx + dy * dy) / radius);
-                hsv[2] = 1f;
-                currentColor = Color.HSVToColor(hsv);
-                if (listener != null) listener.onColorChanged(currentColor);
-                invalidate();
-                return true;
-            }
-            return true;
-        }
-    }
-
-    private interface ColorWheelListener { void onColorChanged(int color); }
 
     private void confirmClear() {
         new AlertDialog.Builder(this)
@@ -738,19 +726,23 @@ public class StickerBuilderActivity extends AppCompatActivity {
             Toast.makeText(this, "Selecione um texto no canvas primeiro.", Toast.LENGTH_SHORT).show();
             return;
         }
+
         java.util.ArrayList<String> names = new java.util.ArrayList<>(java.util.Arrays.asList(
                 "Sans — padrão", "Serif — editorial", "Monospace — máquina",
-                "Condensada — pôster", "Sans leve", "Sans fina", "Sans média",
-                "Sans pesada", "Sans extra pesada", "Arredondada", "Cursiva — manuscrita",
-                "Casual", "Fantasy", "Serif em negrito", "Serif itálica",
+                "Condensada — pôster", "Sans leve", "Sans fina",
+                "Sans média", "Sans pesada", "Sans extra pesada",
+                "Arredondada", "Cursiva — manuscrita", "Casual",
+                "Fantasy", "Serif em negrito", "Serif itálica",
                 "Sans negrito itálica", "Small caps", "Condensada negrito"
         ));
         java.util.ArrayList<String> codes = new java.util.ArrayList<>(java.util.Arrays.asList(
-                "SANS_SERIF", "SERIF", "MONOSPACE", "CONDENSED", "SANS_LIGHT",
-                "SANS_THIN", "SANS_MEDIUM", "SANS_BLACK", "SANS_EXTRA_BLACK",
-                "SANS_ROUNDED", "CURSIVE", "CASUAL", "FANTASY", "SERIF_BOLD",
-                "SERIF_ITALIC", "SANS_BOLD_ITALIC", "SMALL_CAPS", "CONDENSED_BOLD"
+                "SANS_SERIF", "SERIF", "MONOSPACE", "CONDENSED",
+                "SANS_LIGHT", "SANS_THIN", "SANS_MEDIUM", "SANS_BLACK",
+                "SANS_EXTRA_BLACK", "SANS_ROUNDED", "CURSIVE", "CASUAL",
+                "FANTASY", "SERIF_BOLD", "SERIF_ITALIC",
+                "SANS_BOLD_ITALIC", "SMALL_CAPS", "CONDENSED_BOLD"
         ));
+
         File[] importedFonts = getFilesDir().listFiles((dir, name) ->
                 name.startsWith("recap_font_") &&
                 (name.endsWith(".ttf") || name.endsWith(".otf") || name.endsWith(".ttc")));
@@ -761,11 +753,104 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 names.add("Importada: " + fontFile.getName().replaceFirst("^recap_font_", ""));
             }
         }
-        new AlertDialog.Builder(this).setTitle("Escolha uma fonte")
-                .setItems(names.toArray(new String[0]), (dialog, which) -> {
-                    selected.fontFamily = codes.get(which);
-                    drawingView.invalidate();
-                }).setNegativeButton("Cancelar", null).show();
+
+        int padding = dp(12);
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(padding, padding / 2, padding, padding / 2);
+        scroll.addView(list);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Escolha uma fonte")
+                .setView(scroll)
+                .setPositiveButton("Importar fonte", null)
+                .setNegativeButton("Cancelar", null)
+                .create();
+
+        for (int i = 0; i < names.size(); i++) {
+            final String fontCode = codes.get(i);
+            boolean isSelected = fontCode.equals(selected.fontFamily);
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(padding, padding, padding, padding);
+            row.setBackgroundColor(isSelected
+                    ? Color.rgb(44, 61, 49) : Color.rgb(24, 31, 26));
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rowParams.bottomMargin = padding / 2;
+            row.setLayoutParams(rowParams);
+
+            TextView name = new TextView(this);
+            name.setText(names.get(i) + (isSelected ? "  ✓" : ""));
+            name.setTextColor(isSelected ? Color.rgb(183, 255, 0) : Color.WHITE);
+            name.setTextSize(13);
+            name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+
+            TextView preview = new TextView(this);
+            preview.setText("Aa Gg 0123");
+            preview.setTextColor(Color.rgb(240, 235, 221));
+            preview.setTextSize(19);
+            preview.setTypeface(createTypeface(fontCode));
+
+            row.addView(name, new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            row.addView(preview);
+            row.setOnClickListener(v -> {
+                selected.fontFamily = fontCode;
+                drawingView.invalidate();
+                dialog.dismiss();
+            });
+            list.addView(row);
+        }
+
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
+                    dialog.dismiss();
+                    fontPickerLauncher.launch("*/*");
+                }));
+        dialog.show();
+    }
+
+    private void importCustomFont(Uri uri) {
+        String extension = ".ttf";
+        android.database.Cursor cursor = getContentResolver().query(
+                uri, new String[]{android.provider.OpenableColumns.DISPLAY_NAME},
+                null, null, null);
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    String sourceName = cursor.getString(0);
+                    if (sourceName != null && sourceName.toLowerCase(java.util.Locale.ROOT).endsWith(".otf")) {
+                        extension = ".otf";
+                    } else if (sourceName != null && sourceName.toLowerCase(java.util.Locale.ROOT).endsWith(".ttc")) {
+                        extension = ".ttc";
+                    }
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        try (InputStream input = getContentResolver().openInputStream(uri)) {
+            if (input == null) throw new java.io.IOException("Não foi possível abrir o arquivo");
+            String fileName = "recap_font_" + System.currentTimeMillis() + extension;
+            File destination = new File(getFilesDir(), fileName);
+            try (FileOutputStream output = new FileOutputStream(destination)) {
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+            }
+            Typeface.createFromFile(destination);
+            Toast.makeText(this,
+                    "Fonte importada! Abra o seletor novamente para usá-la.",
+                    Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(this,
+                    "Não foi possível importar essa fonte. Use um arquivo TTF ou OTF válido.",
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     private Typeface createTypeface(String family) {
