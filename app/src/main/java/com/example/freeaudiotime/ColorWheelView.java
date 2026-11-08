@@ -20,9 +20,11 @@ public class ColorWheelView extends View {
     private final Paint wheelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fadePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint selectorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    // SweepGradient advances clockwise from the right (0 degrees), matching
+    // HSV hue and the atan2-based touch coordinates below.
     private final int[] wheelColors = {
-            Color.RED, Color.MAGENTA, Color.BLUE, Color.CYAN,
-            Color.GREEN, Color.YELLOW, Color.RED
+            Color.RED, Color.YELLOW, Color.GREEN, Color.CYAN,
+            Color.BLUE, Color.MAGENTA, Color.RED
     };
 
     private float hue;
