@@ -550,27 +550,125 @@ import android.widget.SeekBar;
         }
     
         private void showAddStickerDialog() {
-            String[] stickers = {"💿 Disco de Vinil", "🎵 Nota Musical", "🌊 Onda Sonora", "⭐ Estrela", "❤️ Coração", "🔥 Fogo", "🏆 Troféu", "👑 Coroa", "🎧 Fones"};
-            String[] codes = {"DISCO", "NOTA", "ONDA", "STAR", "HEART", "FIRE", "TROPHY", "CROWN", "HEADPHONES"};
-    
-            new AlertDialog.Builder(this)
-                    .setTitle("Escolher Sticker")
-                    .setItems(stickers, (dialog, which) -> {
+            String[] names = {
+                    "Disco", "Nota musical", "Onda sonora", "Estrela", "Coração",
+                    "Fogo", "Troféu", "Coroa", "Fones", "Fita cassete",
+                    "Microfone", "Equalizador", "Brilho", "Caixa de som"
+            };
+            String[] codes = {
+                    "DISCO", "NOTA", "ONDA", "STAR", "HEART", "FIRE",
+                    "TROPHY", "CROWN", "HEADPHONES", "CASSETTE", "MIC",
+                    "EQ", "SPARKLE", "SPEAKER"
+            };
+
+            android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+            LinearLayout grid = new LinearLayout(this);
+            grid.setOrientation(LinearLayout.VERTICAL);
+            grid.setPadding(dp(8), dp(8), dp(8), dp(8));
+            scroll.addView(grid);
+
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setTitle("Galeria de stickers")
+                    .setView(scroll)
+                    .setNegativeButton("Cancelar", null)
+                    .create();
+
+            for (int start = 0; start < codes.length; start += 3) {
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER);
+                LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                rowParams.bottomMargin = dp(8);
+                row.setLayoutParams(rowParams);
+
+                for (int column = 0; column < 3; column++) {
+                    int index = start + column;
+                    if (index >= codes.length) {
+                        row.addView(new View(this), new LinearLayout.LayoutParams(0,
+                                dp(112), 1f));
+                        continue;
+                    }
+
+                    String stickerCode = codes[index];
+                    LinearLayout card = new LinearLayout(this);
+                    card.setOrientation(LinearLayout.VERTICAL);
+                    card.setGravity(android.view.Gravity.CENTER);
+                    card.setPadding(dp(5), dp(8), dp(5), dp(8));
+
+                    android.graphics.drawable.GradientDrawable cardBackground =
+                            new android.graphics.drawable.GradientDrawable();
+                    cardBackground.setColor(Color.rgb(25, 34, 28));
+                    cardBackground.setCornerRadius(dp(12));
+                    cardBackground.setStroke(dp(1), Color.rgb(57, 78, 61));
+                    card.setBackground(cardBackground);
+
+                    LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                            0, dp(112), 1f);
+                    cardParams.setMargins(dp(4), dp(2), dp(4), dp(2));
+                    card.setLayoutParams(cardParams);
+
+                    StickerPreviewView preview = new StickerPreviewView(this, stickerCode);
+                    card.addView(preview, new LinearLayout.LayoutParams(dp(64), dp(64)));
+
+                    TextView label = new TextView(this);
+                    label.setText(names[index]);
+                    label.setTextColor(Color.rgb(240, 235, 221));
+                    label.setTextSize(11);
+                    label.setGravity(android.view.Gravity.CENTER);
+                    label.setMaxLines(2);
+                    LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT);
+                    labelParams.topMargin = dp(4);
+                    card.addView(label, labelParams);
+
+                    card.setOnClickListener(v -> {
                         undoRedoManager.pushState(currentTemplate);
                         RecapElementModel sticker = new RecapElementModel(
                                 RecapElementBinding.CUSTOM_STATIC_IMAGE,
                                 0.35f, 0.4f, 0.25f, 0.15f
                         );
-                        sticker.setStickerType(codes[which]);
+                        sticker.setStickerType(stickerCode);
                         sticker.setFontColorHex("#B7FF00");
                         sticker.setZIndex(currentTemplate.getElements().size());
                         currentTemplate.getElements().add(sticker);
                         canvasView.setSelectedElementId(sticker.getId());
                         canvasView.invalidate();
                         updateUndoRedoButtons();
-                    })
-                    .setNegativeButton("Cancelar", null)
-                    .show();
+                        dialog.dismiss();
+                    });
+                    row.addView(card);
+                }
+                grid.addView(row);
+            }
+
+            dialog.show();
+        }
+
+        private int dp(float value) {
+            return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+        }
+
+        private class StickerPreviewView extends View {
+            private final String stickerCode;
+
+            StickerPreviewView(android.content.Context context, String stickerCode) {
+                super(context);
+                this.stickerCode = stickerCode;
+            }
+
+            @Override
+            protected void onDraw(android.graphics.Canvas canvas) {
+                super.onDraw(canvas);
+                RecapCanvasRenderer.drawStickerPreview(
+                        canvas,
+                        new android.graphics.RectF(2, 2, getWidth() - 2, getHeight() - 2),
+                        stickerCode,
+                        "#B7FF00"
+                );
+            }
         }
     
         private void saveCustomImageElement(Uri uri) {
