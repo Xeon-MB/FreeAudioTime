@@ -16,14 +16,14 @@
 
         <TextView
             android:id="@+id/btnBack"
-            android:layout_width="wrap_content"
+            android:layout_width="40dp"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:paddingHorizontal="8dp"
-            android:text="← VOLTAR"
+            android:contentDescription="Voltar"
+            android:text="←"
             android:textColor="#F3F1E7"
             android:textStyle="bold"
-            android:textSize="13sp" />
+            android:textSize="22sp" />
 
         <TextView
             android:id="@+id/editorTitle"
@@ -40,32 +40,37 @@
 
         <Button
             android:id="@+id/btnUndo"
-            android:layout_width="wrap_content"
-            android:minWidth="104dp"
+            android:layout_width="40dp"
+            android:minWidth="0dp"
             android:layout_height="38dp"
-            android:layout_marginEnd="4dp"
+            android:layout_marginEnd="2dp"
+            android:paddingHorizontal="0dp"
             android:contentDescription="Desfazer última alteração"
-            android:text="↶ DESFAZER"
-            android:textSize="11sp"
+            android:text="↶"
+            android:textSize="20sp"
             android:backgroundTint="#243328"
             android:textColor="#F3F1E7" />
 
         <Button
             android:id="@+id/btnRedo"
-            android:layout_width="wrap_content"
-            android:minWidth="104dp"
+            android:layout_width="40dp"
+            android:minWidth="0dp"
             android:layout_height="38dp"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="4dp"
+            android:paddingHorizontal="0dp"
             android:contentDescription="Refazer última alteração"
-            android:text="↷ REFAZER"
-            android:textSize="11sp"
+            android:text="↷"
+            android:textSize="20sp"
             android:backgroundTint="#243328"
             android:textColor="#F3F1E7" />
 
         <Button
             android:id="@+id/btnSaveTemplate"
-            android:layout_width="wrap_content"
+            android:layout_width="72dp"
+            android:minWidth="0dp"
             android:layout_height="38dp"
+            android:paddingHorizontal="2dp"
+            android:contentDescription="Salvar modelo"
             android:text="SALVAR"
             android:textSize="12sp"
             android:textStyle="bold"
