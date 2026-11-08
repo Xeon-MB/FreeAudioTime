@@ -72,6 +72,16 @@ import android.widget.SeekBar;
     
         private final UndoRedoManager undoRedoManager = new UndoRedoManager();
 
+        private final ActivityResultLauncher<Intent> stickerBuilderLauncher =
+                registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        String stickerPath = result.getData().getStringExtra(StickerBuilderActivity.EXTRA_STICKER_PATH);
+                        if (stickerPath != null && !stickerPath.isEmpty()) {
+                            addCreatedStickerElement(stickerPath);
+                        }
+                    }
+                });
+
         private final ActivityResultLauncher<String> stickerImportLauncher =
                 registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                     if (uri != null) {
@@ -703,150 +713,22 @@ import android.widget.SeekBar;
         }
 
         private void showCreateStickerDialog() {
-            String[] stickerNames = {
-                    "Disco", "Nota musical", "Onda sonora", "Estrela", "Coração",
-                    "Fogo", "Troféu", "Coroa", "Fones", "Fita cassete",
-                    "Microfone", "Equalizador", "Brilho", "Caixa de som"
-            };
-            String[] stickerCodes = {
-                    "DISCO", "NOTA", "ONDA", "STAR", "HEART", "FIRE",
-                    "TROPHY", "CROWN", "HEADPHONES", "CASSETTE", "MIC",
-                    "EQ", "SPARKLE", "SPEAKER"
-            };
-            String[] colorNames = {"Verde neon", "Ciano", "Rosa", "Amarelo", "Branco"};
-            String[] colorValues = {"#B7FF00", "#00E5FF", "#FF5AA5", "#FFD54F", "#F0EBDD"};
-            String[] backgroundNames = {"Sem fundo", "Fundo escuro", "Fundo claro", "Fundo verde"};
-            String[] backgroundValues = {"", "#D90D110E", "#D9F3F1E7", "#D9B7FF00"};
+            stickerBuilderLauncher.launch(new Intent(this, StickerBuilderActivity.class));
+        }
 
-            LinearLayout content = new LinearLayout(this);
-            content.setOrientation(LinearLayout.VERTICAL);
-            content.setPadding(dp(20), dp(8), dp(20), dp(8));
-
-            TextView previewTitle = new TextView(this);
-            previewTitle.setText("PRÉ-VISUALIZAÇÃO");
-            previewTitle.setTextColor(Color.rgb(183, 255, 0));
-            previewTitle.setTextSize(11);
-            previewTitle.setTypeface(null, android.graphics.Typeface.BOLD);
-            content.addView(previewTitle);
-
-            StickerPreviewView preview = new StickerPreviewView(this, stickerCodes[0]);
-            LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(dp(104), dp(104));
-            previewParams.gravity = android.view.Gravity.CENTER_HORIZONTAL;
-            previewParams.topMargin = dp(8);
-            previewParams.bottomMargin = dp(12);
-            content.addView(preview, previewParams);
-
-            TextView iconLabel = new TextView(this);
-            iconLabel.setText("Modelo");
-            iconLabel.setTextColor(Color.WHITE);
-            content.addView(iconLabel);
-
-            android.widget.Spinner iconSpinner = new android.widget.Spinner(this);
-            android.widget.ArrayAdapter<String> iconAdapter = new android.widget.ArrayAdapter<>(
-                    this, android.R.layout.simple_spinner_item, stickerNames);
-            iconAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            iconSpinner.setAdapter(iconAdapter);
-            content.addView(iconSpinner);
-
-            EditText textInput = new EditText(this);
-            textInput.setHint("Texto opcional (ex.: TOP 1)");
-            textInput.setSingleLine(true);
-            textInput.setTextSize(15);
-            textInput.setTextColor(Color.WHITE);
-            textInput.setHintTextColor(Color.LTGRAY);
-            LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            textParams.topMargin = dp(8);
-            content.addView(textInput, textParams);
-
-            TextView colorLabel = new TextView(this);
-            colorLabel.setText("Cor do ícone e do texto");
-            colorLabel.setTextColor(Color.WHITE);
-            colorLabel.setPadding(0, dp(8), 0, 0);
-            content.addView(colorLabel);
-
-            android.widget.Spinner colorSpinner = new android.widget.Spinner(this);
-            android.widget.ArrayAdapter<String> colorAdapter = new android.widget.ArrayAdapter<>(
-                    this, android.R.layout.simple_spinner_item, colorNames);
-            colorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            colorSpinner.setAdapter(colorAdapter);
-            content.addView(colorSpinner);
-
-            TextView backgroundLabel = new TextView(this);
-            backgroundLabel.setText("Fundo do sticker");
-            backgroundLabel.setTextColor(Color.WHITE);
-            backgroundLabel.setPadding(0, dp(8), 0, 0);
-            content.addView(backgroundLabel);
-
-            android.widget.Spinner backgroundSpinner = new android.widget.Spinner(this);
-            android.widget.ArrayAdapter<String> backgroundAdapter = new android.widget.ArrayAdapter<>(
-                    this, android.R.layout.simple_spinner_item, backgroundNames);
-            backgroundAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            backgroundSpinner.setAdapter(backgroundAdapter);
-            content.addView(backgroundSpinner);
-
-            Runnable updatePreview = () -> preview.setPreview(
-                    stickerCodes[iconSpinner.getSelectedItemPosition()],
-                    colorValues[colorSpinner.getSelectedItemPosition()],
-                    backgroundValues[backgroundSpinner.getSelectedItemPosition()]
+        private void addCreatedStickerElement(String stickerPath) {
+            undoRedoManager.pushState(currentTemplate);
+            RecapElementModel sticker = new RecapElementModel(
+                    RecapElementBinding.CUSTOM_STATIC_IMAGE,
+                    0.31f, 0.36f, 0.38f, 0.25f
             );
-            android.widget.AdapterView.OnItemSelectedListener previewListener =
-                    new android.widget.AdapterView.OnItemSelectedListener() {
-                        @Override
-                        public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                            updatePreview.run();
-                        }
-                        @Override
-                        public void onNothingSelected(android.widget.AdapterView<?> parent) { }
-                    };
-            iconSpinner.setOnItemSelectedListener(previewListener);
-            colorSpinner.setOnItemSelectedListener(previewListener);
-            backgroundSpinner.setOnItemSelectedListener(previewListener);
-
-            AlertDialog dialog = new AlertDialog.Builder(this)
-                    .setTitle("Montar sticker")
-                    .setView(content)
-                    .setPositiveButton("Adicionar", (d, which) -> {
-                        String stickerText = textInput.getText().toString().trim();
-                        String stickerCode = stickerCodes[iconSpinner.getSelectedItemPosition()];
-                        String stickerColor = colorValues[colorSpinner.getSelectedItemPosition()];
-                        String stickerBackground = backgroundValues[backgroundSpinner.getSelectedItemPosition()];
-
-                        undoRedoManager.pushState(currentTemplate);
-                        RecapElementModel sticker = new RecapElementModel(
-                                RecapElementBinding.CUSTOM_STATIC_IMAGE,
-                                0.36f, stickerText.isEmpty() ? 0.38f : 0.31f,
-                                0.28f, stickerText.isEmpty() ? 0.24f : 0.19f
-                        );
-                        sticker.setStickerType(stickerCode);
-                        sticker.setFontColorHex(stickerColor);
-                        sticker.setBackgroundColorHex(stickerBackground);
-                        sticker.setZIndex(currentTemplate.getElements().size());
-                        currentTemplate.getElements().add(sticker);
-
-                        if (!stickerText.isEmpty()) {
-                            RecapElementModel caption = new RecapElementModel(
-                                    RecapElementBinding.CUSTOM_STATIC_TEXT,
-                                    0.16f, 0.53f, 0.68f, 0.08f
-                            );
-                            caption.setCustomText(stickerText);
-                            caption.setFontFamily("SANS_BLACK");
-                            caption.setFontSizeSp(17f);
-                            caption.setBold(true);
-                            caption.setAlignment("CENTER");
-                            caption.setFontColorHex(stickerColor);
-                            caption.setZIndex(currentTemplate.getElements().size());
-                            currentTemplate.getElements().add(caption);
-                            canvasView.setSelectedElementId(caption.getId());
-                        } else {
-                            canvasView.setSelectedElementId(sticker.getId());
-                        }
-                        canvasView.invalidate();
-                        updateUndoRedoButtons();
-                    })
-                    .setNegativeButton("Cancelar", null)
-                    .create();
-            dialog.show();
+            sticker.setImagePath(stickerPath);
+            sticker.setZIndex(currentTemplate.getElements().size());
+            currentTemplate.getElements().add(sticker);
+            canvasView.setSelectedElementId(sticker.getId());
+            canvasView.invalidate();
+            updateUndoRedoButtons();
+            Toast.makeText(this, "Sticker criado e adicionado ao recap!", Toast.LENGTH_SHORT).show();
         }
 
         private void saveCustomStickerElement(Uri uri) {
