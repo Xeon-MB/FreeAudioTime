@@ -9,6 +9,9 @@ import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
+import android.graphics.SweepGradient;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -42,12 +45,18 @@ public class StickerBuilderActivity extends AppCompatActivity {
     private StickerDrawingView drawingView;
     private int currentColor = Color.rgb(183, 255, 0);
     private float currentStrokeWidth = 9f;
+    private int selectedTextIndex = -1;
+    private boolean movingSelectedText = false;
+    private float lastTouchX, lastTouchY;
 
     private enum Tool { BRUSH, LINE, RECTANGLE, ELLIPSE, ERASER }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setStatusBarColor(Color.rgb(10, 14, 11));
+        getWindow().setNavigationBarColor(Color.rgb(10, 14, 11));
+        getWindow().getDecorView().setSystemUiVisibility(0);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -122,10 +131,10 @@ public class StickerBuilderActivity extends AppCompatActivity {
             });
         }
         Button customColor = new Button(this);
-        customColor.setText("HEX");
+        customColor.setText("Roda de cores");
         customColor.setTextSize(10);
-        customColor.setOnClickListener(v -> showHexColorDialog());
-        colors.addView(customColor, new LinearLayout.LayoutParams(dp(58), dp(38)));
+        customColor.setOnClickListener(v -> showColorWheelDialog());
+        colors.addView(customColor, new LinearLayout.LayoutParams(dp(112), dp(38)));
         root.addView(colors);
 
         LinearLayout sizeRow = new LinearLayout(this);
@@ -149,11 +158,57 @@ public class StickerBuilderActivity extends AppCompatActivity {
         sizeRow.addView(size, new LinearLayout.LayoutParams(0, dp(42), 1f));
         root.addView(sizeRow);
 
+        LinearLayout textActions = new LinearLayout(this);
+        textActions.setGravity(Gravity.CENTER_VERTICAL);
         Button addText = new Button(this);
         addText.setText("Adicionar texto");
         addText.setOnClickListener(v -> showTextDialog());
-        root.addView(addText, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(46)));
+        textActions.addView(addText, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        Button editText = new Button(this);
+        editText.setText("Editar");
+        editText.setOnClickListener(v -> editSelectedText());
+        textActions.addView(editText, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        Button fontText = new Button(this);
+        fontText.setText("Fonte");
+        fontText.setOnClickListener(v -> showFontPickerDialog());
+        textActions.addView(fontText, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        root.addView(textActions);
+
+        TextView textSizeLabel = new TextView(this);
+        textSizeLabel.setText("TAMANHO DO TEXTO");
+        textSizeLabel.setTextColor(Color.LTGRAY);
+        textSizeLabel.setTextSize(10);
+        root.addView(textSizeLabel);
+        SeekBar textSize = new SeekBar(this);
+        textSize.setMax(176);
+        textSize.setProgress(40);
+        textSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                drawingView.updateSelectedTextSize(24f + progress);
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) { }
+            @Override public void onStopTrackingTouch(SeekBar bar) { }
+        });
+        root.addView(textSize, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(34)));
+
+        TextView rotationLabel = new TextView(this);
+        rotationLabel.setText("ROTAÇÃO DO TEXTO");
+        rotationLabel.setTextColor(Color.LTGRAY);
+        rotationLabel.setTextSize(10);
+        root.addView(rotationLabel);
+        SeekBar textRotation = new SeekBar(this);
+        textRotation.setMax(360);
+        textRotation.setProgress(180);
+        textRotation.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                drawingView.updateSelectedTextRotation(progress - 180f);
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) { }
+            @Override public void onStopTrackingTouch(SeekBar bar) { }
+        });
+        root.addView(textRotation, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(34)));
 
         Button save = new Button(this);
         save.setText("SALVAR STICKER");
@@ -201,24 +256,89 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void showHexColorDialog() {
-        android.widget.EditText input = new android.widget.EditText(this);
-        input.setSingleLine(true);
-        input.setHint("#RRGGBB");
+    private void showColorWheelDialog() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(18), dp(12), dp(18), dp(8));
+        ColorWheelView wheel = new ColorWheelView();
+        content.addView(wheel, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(250)));
+        View preview = new View(this);
+        android.graphics.drawable.GradientDrawable previewBg =
+                new android.graphics.drawable.GradientDrawable();
+        previewBg.setCornerRadius(dp(10));
+        previewBg.setColor(currentColor);
+        preview.setBackground(previewBg);
+        LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(34));
+        previewParams.topMargin = dp(10);
+        content.addView(preview, previewParams);
+        wheel.setOnColorChangedListener(color -> {
+            currentColor = color;
+            previewBg.setColor(color);
+            preview.invalidate();
+        });
         new AlertDialog.Builder(this)
-                .setTitle("Cor personalizada")
-                .setView(input)
+                .setTitle("Escolha uma cor")
+                .setView(content)
+                .setPositiveButton("Aplicar", (dialog, which) -> drawingView.setColor(currentColor))
                 .setNegativeButton("Cancelar", null)
-                .setPositiveButton("Aplicar", (dialog, which) -> {
-                    try {
-                        currentColor = Color.parseColor(input.getText().toString().trim());
-                        drawingView.setColor(currentColor);
-                    } catch (IllegalArgumentException e) {
-                        Toast.makeText(this, "Use uma cor hexadecimal válida.", Toast.LENGTH_SHORT).show();
-                    }
-                })
                 .show();
     }
+
+    private class ColorWheelView extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final float[] hsv = {0f, 1f, 1f};
+        private android.graphics.RectF bounds = new android.graphics.RectF();
+        private ColorWheelListener listener;
+
+        ColorWheelView() { super(StickerBuilderActivity.this); }
+        void setOnColorChangedListener(ColorWheelListener callback) { listener = callback; }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float radius = Math.min(getWidth(), getHeight()) * 0.43f;
+            float cx = getWidth() / 2f, cy = getHeight() / 2f;
+            bounds.set(cx - radius, cy - radius, cx + radius, cy + radius);
+            int[] colors = new int[13];
+            for (int i = 0; i < 12; i++) {
+                hsv[0] = i * 30f;
+                colors[i] = Color.HSVToColor(hsv);
+            }
+            colors[12] = colors[0];
+            paint.setShader(new SweepGradient(cx, cy, colors, null));
+            canvas.drawCircle(cx, cy, radius, paint);
+            paint.setShader(null);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(dp(2));
+            paint.setColor(Color.WHITE);
+            canvas.drawCircle(cx, cy, radius, paint);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.WHITE);
+            canvas.drawCircle(cx, cy, radius * 0.16f, paint);
+            paint.setColor(currentColor);
+            canvas.drawCircle(cx, cy, radius * 0.12f, paint);
+        }
+
+        @Override public boolean onTouchEvent(MotionEvent event) {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN
+                    || event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+                float dx = event.getX() - getWidth() / 2f;
+                float dy = event.getY() - getHeight() / 2f;
+                float angle = (float) Math.toDegrees(Math.atan2(dy, dx));
+                hsv[0] = (angle + 360f) % 360f;
+                hsv[1] = 1f;
+                hsv[2] = 1f;
+                currentColor = Color.HSVToColor(hsv);
+                if (listener != null) listener.onColorChanged(currentColor);
+                invalidate();
+                return true;
+            }
+            return true;
+        }
+    }
+
+    private interface ColorWheelListener { void onColorChanged(int color); }
 
     private void confirmClear() {
         new AlertDialog.Builder(this)
@@ -280,10 +400,40 @@ public class StickerBuilderActivity extends AppCompatActivity {
         boolean hasArtwork() { return !commands.isEmpty(); }
 
         void addText(String text, int textColor) {
-            pendingText = text;
-            color = textColor;
-            Toast.makeText(StickerBuilderActivity.this,
-                    "Toque no canvas para posicionar o texto.", Toast.LENGTH_SHORT).show();
+            saveUndo();
+            DrawCommand command = new DrawCommand();
+            command.tool = Tool.BRUSH;
+            command.kind = "TEXT";
+            command.text = text;
+            command.color = textColor;
+            command.textSize = 64f;
+            command.fontFamily = "SANS_SERIF";
+            command.x1 = ART_SIZE / 2f;
+            command.y1 = ART_SIZE / 2f;
+            commands.add(command);
+            selectedTextIndex = commands.size() - 1;
+            redo.clear();
+            invalidate();
+        }
+
+        void updateSelectedTextSize(float size) {
+            DrawCommand command = getSelectedText();
+            if (command == null) return;
+            command.textSize = size;
+            invalidate();
+        }
+
+        void updateSelectedTextRotation(float rotation) {
+            DrawCommand command = getSelectedText();
+            if (command == null) return;
+            command.rotation = rotation;
+            invalidate();
+        }
+
+        private DrawCommand getSelectedText() {
+            if (selectedTextIndex < 0 || selectedTextIndex >= commands.size()) return null;
+            DrawCommand command = commands.get(selectedTextIndex);
+            return "TEXT".equals(command.kind) ? command : null;
         }
 
         void clearArtwork() {
@@ -377,15 +527,30 @@ public class StickerBuilderActivity extends AppCompatActivity {
 
             if ("TEXT".equals(command.kind)) {
                 paint.setStyle(Paint.Style.FILL);
-                paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                paint.setTypeface(createTypeface(command.fontFamily));
                 paint.setTextSize(command.textSize);
                 paint.setTextAlign(Paint.Align.CENTER);
+                canvas.save();
+                canvas.rotate(command.rotation, command.x1, command.y1);
                 String[] lines = command.text.split("\\n");
                 float lineHeight = command.textSize * 1.2f;
                 float startY = command.y1 - (lines.length - 1) * lineHeight / 2f;
                 for (int i = 0; i < lines.length; i++) {
                     canvas.drawText(lines[i], command.x1, startY + i * lineHeight, paint);
                 }
+                if (commands.indexOf(command) == selectedTextIndex) {
+                    Paint selection = new Paint(Paint.ANTI_ALIAS_FLAG);
+                    selection.setColor(Color.rgb(183, 255, 0));
+                    selection.setStyle(Paint.Style.STROKE);
+                    selection.setStrokeWidth(2f);
+                    float widest = 0f;
+                    for (String line : lines) widest = Math.max(widest, paint.measureText(line));
+                    canvas.drawRect(command.x1 - widest / 2f - 8f,
+                            command.y1 - command.textSize * lines.length * 0.65f,
+                            command.x1 + widest / 2f + 8f,
+                            command.y1 + command.textSize * lines.length * 0.65f, selection);
+                }
+                canvas.restore();
                 return;
             }
 
@@ -416,6 +581,29 @@ public class StickerBuilderActivity extends AppCompatActivity {
             paint.setXfermode(null);
         }
 
+        private DrawCommand findTextAt(float x, float y) {
+            for (int i = commands.size() - 1; i >= 0; i--) {
+                DrawCommand command = commands.get(i);
+                if (!"TEXT".equals(command.kind)) continue;
+                Paint measure = new Paint(Paint.ANTI_ALIAS_FLAG);
+                measure.setTypeface(createTypeface(command.fontFamily));
+                measure.setTextSize(command.textSize);
+                float width = 0f;
+                for (String line : command.text.split("\\n")) {
+                    width = Math.max(width, measure.measureText(line));
+                }
+                float dx = x - command.x1, dy = y - command.y1;
+                double radians = Math.toRadians(-command.rotation);
+                float localX = (float) (dx * Math.cos(radians) - dy * Math.sin(radians));
+                float localY = (float) (dx * Math.sin(radians) + dy * Math.cos(radians));
+                if (Math.abs(localX) <= width / 2f + 12f
+                        && Math.abs(localY) <= command.textSize * command.text.split("\\n").length * 0.7f) {
+                    return command;
+                }
+            }
+            return null;
+        }
+
         private float[] toArtwork(float x, float y) {
             if (scale <= 0f) return new float[]{0f, 0f};
             return new float[]{
@@ -429,22 +617,18 @@ public class StickerBuilderActivity extends AppCompatActivity {
             float[] point = toArtwork(event.getX(), event.getY());
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
-                    if (pendingText != null) {
+                    DrawCommand hit = findTextAt(point[0], point[1]);
+                    if (hit != null) {
+                        selectedTextIndex = commands.indexOf(hit);
                         saveUndo();
-                        DrawCommand textCommand = new DrawCommand();
-                        textCommand.tool = Tool.BRUSH;
-                        textCommand.kind = "TEXT";
-                        textCommand.text = pendingText;
-                        textCommand.color = color;
-                        textCommand.textSize = Math.max(24f, strokeWidth * 4f);
-                        textCommand.x1 = point[0];
-                        textCommand.y1 = point[1];
-                        commands.add(textCommand);
-                        pendingText = null;
-                        redo.clear();
+                        movingSelectedText = true;
+                        lastTouchX = point[0];
+                        lastTouchY = point[1];
                         invalidate();
                         return true;
                     }
+                    selectedTextIndex = -1;
+                    movingSelectedText = false;
                     saveUndo();
                     active = new DrawCommand();
                     active.tool = tool;
@@ -461,6 +645,17 @@ public class StickerBuilderActivity extends AppCompatActivity {
                     invalidate();
                     return true;
                 case MotionEvent.ACTION_MOVE:
+                    if (movingSelectedText) {
+                        DrawCommand selected = getSelectedText();
+                        if (selected != null) {
+                            selected.x1 += point[0] - lastTouchX;
+                            selected.y1 += point[1] - lastTouchY;
+                            lastTouchX = point[0];
+                            lastTouchY = point[1];
+                            invalidate();
+                        }
+                        return true;
+                    }
                     if (active != null) {
                         active.x2 = point[0];
                         active.y2 = point[1];
@@ -470,6 +665,12 @@ public class StickerBuilderActivity extends AppCompatActivity {
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
+                    if (movingSelectedText) {
+                        movingSelectedText = false;
+                        redo.clear();
+                        invalidate();
+                        return true;
+                    }
                     if (active != null) {
                         if (Math.abs(active.x2 - active.x1) < 1f
                                 && Math.abs(active.y2 - active.y1) < 1f
@@ -487,6 +688,70 @@ public class StickerBuilderActivity extends AppCompatActivity {
         }
     }
 
+    private void editSelectedText() {
+        DrawCommand selected = drawingView.getSelectedText();
+        if (selected == null) {
+            Toast.makeText(this, "Selecione um texto no canvas primeiro.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setText(selected.text);
+        input.setMinLines(2);
+        new AlertDialog.Builder(this)
+                .setTitle("Editar texto")
+                .setView(input)
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Salvar", (dialog, which) -> {
+                    String value = input.getText().toString();
+                    if (!value.trim().isEmpty()) {
+                        selected.text = value;
+                        drawingView.invalidate();
+                    }
+                }).show();
+    }
+
+    private void showFontPickerDialog() {
+        DrawCommand selected = drawingView.getSelectedText();
+        if (selected == null) {
+            Toast.makeText(this, "Selecione um texto no canvas primeiro.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] names = {
+                "Sans — padrão", "Serif — editorial", "Monospace — máquina",
+                "Condensada — pôster", "Sans leve", "Sans fina", "Sans média",
+                "Sans pesada", "Arredondada", "Cursiva — manuscrita", "Casual", "Fantasy",
+                "Serif em negrito", "Serif itálica", "Sans negrito itálica"
+        };
+        String[] codes = {
+                "SANS_SERIF", "SERIF", "MONOSPACE", "CONDENSED", "SANS_LIGHT",
+                "SANS_THIN", "SANS_MEDIUM", "SANS_BLACK", "SANS_ROUNDED", "CURSIVE",
+                "CASUAL", "FANTASY", "SERIF_BOLD", "SERIF_ITALIC", "SANS_BOLD_ITALIC"
+        };
+        new AlertDialog.Builder(this).setTitle("Escolha uma fonte")
+                .setItems(names, (dialog, which) -> {
+                    selected.fontFamily = codes[which];
+                    drawingView.invalidate();
+                }).setNegativeButton("Cancelar", null).show();
+    }
+
+    private Typeface createTypeface(String family) {
+        if ("SERIF".equals(family)) return Typeface.create("serif", Typeface.NORMAL);
+        if ("MONOSPACE".equals(family)) return Typeface.create("monospace", Typeface.NORMAL);
+        if ("CONDENSED".equals(family)) return Typeface.create("sans-serif-condensed", Typeface.NORMAL);
+        if ("SANS_LIGHT".equals(family)) return Typeface.create("sans-serif-light", Typeface.NORMAL);
+        if ("SANS_THIN".equals(family)) return Typeface.create("sans-serif-thin", Typeface.NORMAL);
+        if ("SANS_MEDIUM".equals(family)) return Typeface.create("sans-serif-medium", Typeface.NORMAL);
+        if ("SANS_BLACK".equals(family)) return Typeface.create("sans-serif-black", Typeface.NORMAL);
+        if ("SANS_ROUNDED".equals(family)) return Typeface.create("sans-serif-rounded", Typeface.NORMAL);
+        if ("CURSIVE".equals(family)) return Typeface.create("cursive", Typeface.NORMAL);
+        if ("CASUAL".equals(family)) return Typeface.create("casual", Typeface.NORMAL);
+        if ("FANTASY".equals(family)) return Typeface.create("fantasy", Typeface.NORMAL);
+        if ("SERIF_BOLD".equals(family)) return Typeface.create("serif", Typeface.BOLD);
+        if ("SERIF_ITALIC".equals(family)) return Typeface.create("serif", Typeface.ITALIC);
+        if ("SANS_BOLD_ITALIC".equals(family)) return Typeface.create("sans-serif", Typeface.BOLD_ITALIC);
+        return Typeface.create("sans-serif", Typeface.BOLD);
+    }
+
     private static class DrawCommand {
         Tool tool;
         String kind = "SHAPE";
@@ -494,6 +759,8 @@ public class StickerBuilderActivity extends AppCompatActivity {
         float width = 8f;
         float x1, y1, x2, y2;
         float textSize;
+        float rotation;
+        String fontFamily = "SANS_SERIF";
         String text;
         Path path;
 
@@ -508,6 +775,8 @@ public class StickerBuilderActivity extends AppCompatActivity {
             copy.x2 = x2;
             copy.y2 = y2;
             copy.textSize = textSize;
+            copy.rotation = rotation;
+            copy.fontFamily = fontFamily;
             copy.text = text;
             copy.path = path == null ? null : new Path(path);
             return copy;
