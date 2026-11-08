@@ -344,16 +344,8 @@ public class RecapCanvasRenderer {
             textPaint.setTextSkewX(-0.25f);
         }
 
-        // Apply Font Family
-        if ("SERIF".equalsIgnoreCase(elem.getFontFamily())) {
-            textPaint.setTypeface(Typeface.SERIF);
-        } else if ("MONOSPACE".equalsIgnoreCase(elem.getFontFamily())) {
-            textPaint.setTypeface(Typeface.MONOSPACE);
-        } else if ("CONDENSED".equalsIgnoreCase(elem.getFontFamily())) {
-            textPaint.setTypeface(Typeface.create("sans-serif-condensed", elem.isBold() ? Typeface.BOLD : Typeface.NORMAL));
-        } else {
-            textPaint.setTypeface(Typeface.SANS_SERIF);
-        }
+        // Apply the selected system font family while keeping older saved templates valid.
+        textPaint.setTypeface(resolveTypeface(elem.getFontFamily()));
 
         Paint.Align align = Paint.Align.LEFT;
         float textX = x;
@@ -543,6 +535,32 @@ public class RecapCanvasRenderer {
             canvas.drawText("🏆 " + ach.title + " (" + ach.formattedDate + ")",
                     x, itemY, achPaint);
             itemY += 46 * scale;
+        }
+    }
+
+    private static Typeface resolveTypeface(String family) {
+        if (family == null) return Typeface.SANS_SERIF;
+        switch (family.toUpperCase(java.util.Locale.ROOT)) {
+            case "SERIF":
+                return Typeface.SERIF;
+            case "SERIF_BOLD":
+                return Typeface.create("serif", Typeface.BOLD);
+            case "MONOSPACE":
+                return Typeface.MONOSPACE;
+            case "CONDENSED":
+                return Typeface.create("sans-serif-condensed", Typeface.NORMAL);
+            case "SANS_LIGHT":
+                return Typeface.create("sans-serif-light", Typeface.NORMAL);
+            case "SANS_MEDIUM":
+                return Typeface.create("sans-serif-medium", Typeface.NORMAL);
+            case "SANS_BLACK":
+                return Typeface.create("sans-serif-black", Typeface.NORMAL);
+            case "SANS_ROUNDED":
+                return Typeface.create("sans-serif-rounded", Typeface.NORMAL);
+            case "SANS_THIN":
+                return Typeface.create("sans-serif-thin", Typeface.NORMAL);
+            default:
+                return Typeface.SANS_SERIF;
         }
     }
 
