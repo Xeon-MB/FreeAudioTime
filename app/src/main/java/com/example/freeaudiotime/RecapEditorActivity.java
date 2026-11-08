@@ -71,6 +71,13 @@ import android.widget.SeekBar;
         private int dynamicAccentColor = 0;
     
         private final UndoRedoManager undoRedoManager = new UndoRedoManager();
+
+        private final ActivityResultLauncher<String> stickerImportLauncher =
+                registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                    if (uri != null) {
+                        saveCustomStickerElement(uri);
+                    }
+                });
     
         private final ActivityResultLauncher<String> imagePickerLauncher =
                 registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
@@ -79,10 +86,10 @@ import android.widget.SeekBar;
                     }
                 });
 
-        private final ActivityResultLauncher<String> fontPickerLauncher =
+        private final ActivityResultLauncher<String> stickerImportLauncher =
                 registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                     if (uri != null) {
-                        importCustomFont(uri);
+                        saveCustomStickerElement(uri);
                     }
                 });
     
@@ -223,6 +230,8 @@ import android.widget.SeekBar;
             findViewById(R.id.btnAddData).setOnClickListener(v -> showAddDynamicDataDialog());
             findViewById(R.id.btnAddImage).setOnClickListener(v -> imagePickerLauncher.launch("image/*"));
             findViewById(R.id.btnAddSticker).setOnClickListener(v -> showAddStickerDialog());
+            findViewById(R.id.btnCreateSticker).setOnClickListener(v -> showCreateStickerDialog());
+            findViewById(R.id.btnImportSticker).setOnClickListener(v -> stickerImportLauncher.launch("image/*"));
             findViewById(R.id.btnBackground).setOnClickListener(v -> showBackgroundCustomizer());
             findViewById(R.id.btnLayersManage).setOnClickListener(v -> showLayersDialog());
             findViewById(R.id.btnExportDirect).setOnClickListener(v -> exportRecapAsImage());
@@ -678,6 +687,93 @@ import android.widget.SeekBar;
             }
         }
     
+        private void showCreateStickerDialog() {
+            EditText textInput = new EditText(this);
+            textInput.setHint("Texto do sticker");
+            textInput.setSingleLine(true);
+            textInput.setTextSize(18);
+
+            android.widget.Spinner styleSpinner = new android.widget.Spinner(this);
+            String[] styles = {"Verde neon", "Ciano", "Rosa", "Amarelo", "Branco"};
+            android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                    this, android.R.layout.simple_spinner_item, styles);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            styleSpinner.setAdapter(adapter);
+
+            LinearLayout content = new LinearLayout(this);
+            content.setOrientation(LinearLayout.VERTICAL);
+            content.setPadding(dp(20), dp(8), dp(20), dp(4));
+            content.addView(textInput);
+            TextView styleLabel = new TextView(this);
+            styleLabel.setText("Estilo do fundo");
+            styleLabel.setTextColor(Color.WHITE);
+            styleLabel.setPadding(0, dp(12), 0, dp(4));
+            content.addView(styleLabel);
+            content.addView(styleSpinner);
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Criar sticker de texto")
+                    .setView(content)
+                    .setPositiveButton("Criar sticker", (dialog, which) -> {
+                        String stickerText = textInput.getText().toString().trim();
+                        if (stickerText.isEmpty()) {
+                            Toast.makeText(this, "Digite um texto para o sticker.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        String[] colors = {"#B7FF00", "#00E5FF", "#FF5AA5", "#FFD54F", "#F0EBDD"};
+                        String background = colors[styleSpinner.getSelectedItemPosition()];
+
+                        undoRedoManager.pushState(currentTemplate);
+                        RecapElementModel sticker = new RecapElementModel(
+                                RecapElementBinding.CUSTOM_STATIC_TEXT,
+                                0.15f, 0.42f, 0.70f, 0.12f
+                        );
+                        sticker.setCustomText(stickerText);
+                        sticker.setFontFamily("SANS_BLACK");
+                        sticker.setFontSizeSp(24f);
+                        sticker.setBold(true);
+                        sticker.setAlignment("CENTER");
+                        sticker.setFontColorHex("#080A08");
+                        sticker.setBackgroundColorHex(background);
+                        sticker.setZIndex(currentTemplate.getElements().size());
+                        currentTemplate.getElements().add(sticker);
+                        canvasView.setSelectedElementId(sticker.getId());
+                        canvasView.invalidate();
+                        updateUndoRedoButtons();
+                    })
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+        }
+
+        private void saveCustomStickerElement(Uri uri) {
+            try (InputStream input = getContentResolver().openInputStream(uri)) {
+                if (input == null) throw new java.io.IOException("Unable to open image");
+                File destination = new File(getFilesDir(),
+                        "custom_sticker_" + System.currentTimeMillis() + ".png");
+                try (FileOutputStream output = new FileOutputStream(destination)) {
+                    byte[] buffer = new byte[8192];
+                    int count;
+                    while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+                }
+
+                undoRedoManager.pushState(currentTemplate);
+                RecapElementModel sticker = new RecapElementModel(
+                        RecapElementBinding.CUSTOM_STATIC_IMAGE,
+                        0.32f, 0.38f, 0.36f, 0.20f
+                );
+                sticker.setImagePath(destination.getAbsolutePath());
+                sticker.setZIndex(currentTemplate.getElements().size());
+                currentTemplate.getElements().add(sticker);
+                canvasView.setSelectedElementId(sticker.getId());
+                canvasView.invalidate();
+                updateUndoRedoButtons();
+                Toast.makeText(this, "Sticker importado para o canvas!", Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                Toast.makeText(this, "Não foi possível importar o sticker.", Toast.LENGTH_SHORT).show();
+            }
+        }
+
         private void saveCustomImageElement(Uri uri) {
             try (InputStream is = getContentResolver().openInputStream(uri)) {
                 if (is == null) return;

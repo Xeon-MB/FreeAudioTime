@@ -262,6 +262,28 @@
                 android:textColor="#F3F1E7" />
 
             <Button
+                android:id="@+id/btnCreateSticker"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:text="CRIAR STICKER"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="#3A4D3D"
+                android:textColor="#B7FF00" />
+
+            <Button
+                android:id="@+id/btnImportSticker"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:text="IMPORTAR STICKER"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="#2C3D31"
+                android:textColor="#F3F1E7" />
+
+            <Button
                 android:id="@+id/btnBackground"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"
