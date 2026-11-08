@@ -470,6 +470,17 @@ public class RecapCanvasRenderer {
 
         if (displayText == null || displayText.isEmpty()) return;
 
+        // Optional rounded background, also used by text-based custom stickers.
+        if (elem.getBackgroundColorHex() != null && !elem.getBackgroundColorHex().isEmpty()) {
+            Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            backgroundPaint.setColor(parseColor(elem.getBackgroundColorHex(), Color.TRANSPARENT));
+            if (elem.getOpacity() < 1.0f) {
+                backgroundPaint.setAlpha((int) (elem.getOpacity() * 255));
+            }
+            float radius = Math.min(h * 0.22f, canvas.getWidth() * 0.035f);
+            canvas.drawRoundRect(new RectF(x, y, x + w, y + h), radius, radius, backgroundPaint);
+        }
+
         TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         int elemColor = defaultTextColor;
         if (elem.getFontColorHex() != null && !elem.getFontColorHex().isEmpty()) {
