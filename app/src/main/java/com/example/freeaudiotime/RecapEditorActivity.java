@@ -1036,11 +1036,26 @@ import android.widget.SeekBar;
         }
 
         private void importCustomFont(Uri uri) {
-            String displayName = "fonte.ttf";
+            String extension = ".ttf";
+            android.database.Cursor cursor = getContentResolver().query(
+                    uri, new String[]{android.provider.OpenableColumns.DISPLAY_NAME},
+                    null, null, null);
+            if (cursor != null) {
+                try {
+                    if (cursor.moveToFirst()) {
+                        String sourceName = cursor.getString(0);
+                        if (sourceName != null && sourceName.toLowerCase(java.util.Locale.ROOT).endsWith(".otf")) {
+                            extension = ".otf";
+                        } else if (sourceName != null && sourceName.toLowerCase(java.util.Locale.ROOT).endsWith(".ttc")) {
+                            extension = ".ttc";
+                        }
+                    }
+                } finally {
+                    cursor.close();
+                }
+            }
             try (InputStream input = getContentResolver().openInputStream(uri)) {
                 if (input == null) throw new java.io.IOException("Não foi possível abrir o arquivo");
-                String mime = getContentResolver().getType(uri);
-                String extension = "otf".equalsIgnoreCase(mime) ? ".otf" : ".ttf";
                 String fileName = "recap_font_" + System.currentTimeMillis() + extension;
                 File destination = new File(getFilesDir(), fileName);
                 try (FileOutputStream output = new FileOutputStream(destination)) {
