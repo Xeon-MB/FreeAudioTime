@@ -88,7 +88,7 @@ import android.widget.SeekBar;
                         saveCustomStickerElement(uri);
                     }
                 });
-    
+
         private final ActivityResultLauncher<String> imagePickerLauncher =
                 registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                     if (uri != null) {
@@ -677,41 +677,25 @@ import android.widget.SeekBar;
         }
 
         private class StickerPreviewView extends View {
-            private String stickerCode;
-            private String colorHex = "#B7FF00";
-            private String backgroundHex = "";
+            private final String stickerCode;
 
             StickerPreviewView(android.content.Context context, String stickerCode) {
                 super(context);
                 this.stickerCode = stickerCode;
             }
 
-            void setPreview(String stickerCode, String colorHex, String backgroundHex) {
-                this.stickerCode = stickerCode;
-                this.colorHex = colorHex;
-                this.backgroundHex = backgroundHex;
-                invalidate();
-            }
-
             @Override
             protected void onDraw(android.graphics.Canvas canvas) {
                 super.onDraw(canvas);
-                if (backgroundHex != null && !backgroundHex.isEmpty()) {
-                    android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-                    paint.setColor(Color.parseColor(backgroundHex));
-                    float radius = Math.min(getWidth(), getHeight()) * 0.18f;
-                    canvas.drawRoundRect(new android.graphics.RectF(2, 2, getWidth() - 2, getHeight() - 2),
-                            radius, radius, paint);
-                }
                 RecapCanvasRenderer.drawStickerPreview(
                         canvas,
-                        new android.graphics.RectF(7, 7, getWidth() - 7, getHeight() - 7),
+                        new android.graphics.RectF(2, 2, getWidth() - 2, getHeight() - 2),
                         stickerCode,
-                        colorHex
+                        "#B7FF00"
                 );
             }
         }
-
+    
         private void showCreateStickerDialog() {
             stickerBuilderLauncher.launch(new Intent(this, StickerBuilderActivity.class));
         }
