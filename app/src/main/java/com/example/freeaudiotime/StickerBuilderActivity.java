@@ -299,29 +299,46 @@ public class StickerBuilderActivity extends AppCompatActivity {
         ColorWheelView() { super(StickerBuilderActivity.this); }
         void setOnColorChangedListener(ColorWheelListener callback) { listener = callback; }
 
+        private Bitmap wheelBitmap;
+
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             float radius = Math.min(getWidth(), getHeight()) * 0.43f;
             float cx = getWidth() / 2f, cy = getHeight() / 2f;
-            bounds.set(cx - radius, cy - radius, cx + radius, cy + radius);
-            int[] colors = new int[13];
-            for (int i = 0; i < 12; i++) {
-                hsv[0] = i * 30f;
-                colors[i] = Color.HSVToColor(hsv);
+            if (wheelBitmap == null) {
+                int size = 512;
+                int[] pixels = new int[size * size];
+                float center = (size - 1) / 2f;
+                float maxRadius = center;
+                float[] colorHsv = new float[3];
+                for (int y = 0; y < size; y++) {
+                    for (int x = 0; x < size; x++) {
+                        float dx = x - center, dy = y - center;
+                        float distance = (float) Math.sqrt(dx * dx + dy * dy);
+                        int index = y * size + x;
+                        if (distance > maxRadius) {
+                            pixels[index] = Color.TRANSPARENT;
+                        } else {
+                            colorHsv[0] = (float) ((Math.toDegrees(Math.atan2(dy, dx)) + 360f) % 360f);
+                            colorHsv[1] = Math.min(1f, distance / maxRadius);
+                            colorHsv[2] = 1f;
+                            pixels[index] = Color.HSVToColor(colorHsv);
+                        }
+                    }
+                }
+                wheelBitmap = Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888);
             }
-            colors[12] = colors[0];
-            paint.setShader(new SweepGradient(cx, cy, colors, null));
-            canvas.drawCircle(cx, cy, radius, paint);
             paint.setShader(null);
+            paint.setFilterBitmap(true);
+            canvas.drawBitmap(wheelBitmap, null,
+                    new android.graphics.RectF(cx - radius, cy - radius, cx + radius, cy + radius), paint);
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(dp(2));
             paint.setColor(Color.WHITE);
             canvas.drawCircle(cx, cy, radius, paint);
             paint.setStyle(Paint.Style.FILL);
-            paint.setColor(Color.WHITE);
-            canvas.drawCircle(cx, cy, radius * 0.16f, paint);
             paint.setColor(currentColor);
-            canvas.drawCircle(cx, cy, radius * 0.12f, paint);
+            canvas.drawCircle(cx, cy, dp(10), paint);
         }
 
         @Override public boolean onTouchEvent(MotionEvent event) {
@@ -329,9 +346,10 @@ public class StickerBuilderActivity extends AppCompatActivity {
                     || event.getActionMasked() == MotionEvent.ACTION_MOVE) {
                 float dx = event.getX() - getWidth() / 2f;
                 float dy = event.getY() - getHeight() / 2f;
+                float radius = Math.min(getWidth(), getHeight()) * 0.43f;
                 float angle = (float) Math.toDegrees(Math.atan2(dy, dx));
                 hsv[0] = (angle + 360f) % 360f;
-                hsv[1] = 1f;
+                hsv[1] = Math.min(1f, (float) Math.sqrt(dx * dx + dy * dy) / radius);
                 hsv[2] = 1f;
                 currentColor = Color.HSVToColor(hsv);
                 if (listener != null) listener.onColorChanged(currentColor);
