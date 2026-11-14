@@ -184,14 +184,14 @@ public class MediaNotificationListener extends NotificationListenerService {
                 if (isPlaying) {
                     saveElapsedTime();
                     isPlaying = false;
+                    stopPeriodicSave();
                 }
 
                 savePlaybackHistory();
 
-                currentTrackTitle = null;
-                currentPlaybackId = null;
-                maxTrackPosition = 0;
-
+                // A sessão pode ser recriada pelo app de mídia durante a mesma
+                // reprodução. Preserve faixa e ID para a próxima sessão assumir
+                // a contagem sem registrar uma segunda reprodução.
                 refreshSessions();
             }
         };
@@ -770,8 +770,9 @@ public class MediaNotificationListener extends NotificationListenerService {
             savePlaybackHistory();
         }
 
-        currentPlaybackId = null;
-        maxTrackPosition = 0;
+        // A troca do MediaController não significa que a reprodução terminou.
+        // O ID e a posição máxima ficam preservados para uma sessão substituta
+        // da mesma faixa. STOPPED/NONE ou uma nova faixa encerram esse ID.
 
         if (currentController != null && controllerCallback != null) {
 
