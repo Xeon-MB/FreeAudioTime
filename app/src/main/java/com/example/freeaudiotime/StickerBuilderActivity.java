@@ -555,7 +555,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
             Bitmap bitmap = Bitmap.createBitmap(ART_SIZE, ART_SIZE, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmap);
             canvas.saveLayer(0, 0, ART_SIZE, ART_SIZE, null);
-            for (DrawCommand command : commands) drawCommand(canvas, command);
+            for (DrawCommand command : commands) drawCommand(canvas, command, false);
             canvas.restore();
             return bitmap;
         }
@@ -572,8 +572,8 @@ public class StickerBuilderActivity extends AppCompatActivity {
             canvas.save();
             canvas.translate(offsetX, offsetY);
             canvas.scale(scale, scale);
-            for (DrawCommand command : commands) drawCommand(canvas, command);
-            if (active != null) drawCommand(canvas, active);
+            for (DrawCommand command : commands) drawCommand(canvas, command, true);
+            if (active != null) drawCommand(canvas, active, true);
             drawSelectedElementOutline(canvas);
             canvas.restore();
             canvas.restore();
@@ -661,7 +661,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
                     offsetY + ART_SIZE * scale, border);
         }
 
-        private void drawCommand(Canvas canvas, DrawCommand command) {
+        private void drawCommand(Canvas canvas, DrawCommand command, boolean showSelection) {
             Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
             paint.setColor(command.color);
             paint.setStrokeWidth(command.width);
@@ -681,7 +681,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 for (int i = 0; i < lines.length; i++) {
                     canvas.drawText(lines[i], command.x1, startY + i * lineHeight, paint);
                 }
-                if (commands.indexOf(command) == selectedTextIndex) {
+                if (showSelection && commands.indexOf(command) == selectedTextIndex) {
                     Paint selection = new Paint(Paint.ANTI_ALIAS_FLAG);
                     selection.setColor(Color.rgb(183, 255, 0));
                     selection.setStyle(Paint.Style.STROKE);
