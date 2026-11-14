@@ -95,7 +95,6 @@ public class StickerBuilderActivity extends AppCompatActivity {
         addButton(top, "Desfazer", v -> drawingView.undo());
         addButton(top, "Refazer", v -> drawingView.redo());
         addButton(top, "Limpar", v -> confirmClear());
-        addButton(top, "Fundo", v -> showBackgroundDialog());
         root.addView(top, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
 
@@ -124,6 +123,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
         addToolButton(tools, "Círculo", Tool.ELLIPSE);
         addToolButton(tools, "Borracha", Tool.ERASER);
         addToolButton(tools, "Selecionar", Tool.SELECT);
+        addActionToolButton(tools, "Fundo", v -> showBackgroundDialog());
         toolsScroll.addView(tools);
         root.addView(toolsScroll);
 
@@ -306,6 +306,16 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, dp(44)));
     }
 
+    private void addActionToolButton(LinearLayout row, String label, View.OnClickListener listener) {
+        Button button = new Button(this);
+        button.setText(label);
+        button.setTextSize(11);
+        button.setTextColor(Color.WHITE);
+        button.setOnClickListener(listener);
+        row.addView(button, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(44)));
+    }
+
     private void addButton(LinearLayout row, String label, View.OnClickListener listener) {
         Button button = new Button(this);
         button.setText(label);
@@ -442,35 +452,75 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 ? Color.WHITE : artworkBackgroundColor);
         wheel.setBrightness(1f);
         content.addView(wheel, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(280)));
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(260)));
 
         View preview = new View(this);
-        preview.setBackgroundColor(wheel.getColor());
         LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(38));
         previewParams.topMargin = padding / 2;
         content.addView(preview, previewParams);
 
+        TextView brightnessLabel = new TextView(this);
+        brightnessLabel.setText("Brilho");
+        brightnessLabel.setTextColor(Color.WHITE);
+        brightnessLabel.setTextSize(13);
+        brightnessLabel.setPadding(0, dp(12), 0, 0);
+        content.addView(brightnessLabel);
+
         SeekBar brightness = new SeekBar(this);
         brightness.setMax(100);
         brightness.setProgress(100);
+        content.addView(brightness, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        TextView transparencyLabel = new TextView(this);
+        transparencyLabel.setText("Transparência");
+        transparencyLabel.setTextColor(Color.WHITE);
+        transparencyLabel.setTextSize(13);
+        transparencyLabel.setPadding(0, dp(8), 0, 0);
+        content.addView(transparencyLabel);
+
+        SeekBar transparency = new SeekBar(this);
+        transparency.setMax(100);
+        int initialAlpha = artworkBackgroundColor == Color.TRANSPARENT
+                ? 0 : Color.alpha(artworkBackgroundColor);
+        transparency.setProgress(initialAlpha);
+        content.addView(transparency, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        final int[] selectedAlpha = {initialAlpha};
+        Runnable updatePreview = () -> {
+            int color = wheel.getColor();
+            preview.setBackgroundColor(Color.argb(selectedAlpha[0],
+                    Color.red(color), Color.green(color), Color.blue(color)));
+        };
         brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
                 wheel.setBrightness(Math.max(8, progress) / 100f);
-                preview.setBackgroundColor(wheel.getColor());
+                updatePreview.run();
             }
             @Override public void onStartTrackingTouch(SeekBar bar) { }
             @Override public void onStopTrackingTouch(SeekBar bar) { }
         });
-        wheel.setOnColorChangedListener(preview::setBackgroundColor);
-        content.addView(brightness, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        transparency.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                selectedAlpha[0] = Math.max(0, Math.min(255, Math.round(progress * 255f / 100f)));
+                updatePreview.run();
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) { }
+            @Override public void onStopTrackingTouch(SeekBar bar) { }
+        });
+        wheel.setOnColorChangedListener(color -> updatePreview.run());
+        updatePreview.run();
 
         new AlertDialog.Builder(this)
                 .setTitle("Cor do fundo")
                 .setView(content)
-                .setPositiveButton("Aplicar", (dialog, which) ->
-                        drawingView.setArtworkBackgroundColor(wheel.getColor()))
+                .setPositiveButton("Aplicar", (dialog, which) -> {
+                    int color = wheel.getColor();
+                    drawingView.setArtworkBackgroundColor(Color.argb(selectedAlpha[0],
+                            Color.red(color), Color.green(color), Color.blue(color)));
+                })
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
