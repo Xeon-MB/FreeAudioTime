@@ -42,7 +42,7 @@ public class PlaybackStatistics {
             long duration = session.optLong("duration", 0L);
             if (title.isEmpty() || playbackId.isEmpty() || duration <= 0L) continue;
 
-            String trackKey = title + "\\n" + artist;
+            String trackKey = title + "\n" + artist;
             durationsByTrack.putIfAbsent(trackKey, new HashMap<>());
             Map<String, Long> playbackDurations = durationsByTrack.get(trackKey);
             playbackDurations.put(
@@ -71,7 +71,7 @@ public class PlaybackStatistics {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < Math.min(5, ranking.size()); i++) {
             Map.Entry<String, Set<String>> track = ranking.get(i);
-            String[] info = track.getKey().split("\\n", 2);
+            String[] info = track.getKey().split("\n", 2);
             int plays = track.getValue().size();
             result.append(i + 1)
                     .append(". ")
@@ -82,7 +82,7 @@ public class PlaybackStatistics {
                     .append(" — ")
                     .append(plays)
                     .append(plays == 1 ? " reprodução" : " reproduções")
-                    .append("\\n");
+                    .append("\n");
         }
         return result.length() == 0 ? "Nenhuma música" : result.toString();
     }
@@ -453,7 +453,7 @@ public class PlaybackStatistics {
             int count = track.getValue().size();
             if (count > highestPlays) {
                 highestPlays = count;
-                mostPlayedTrack = track.getKey().replace("\\n", " - ");
+                mostPlayedTrack = track.getKey().replace("\n", " - ");
             }
         }
         return mostPlayedTrack;
