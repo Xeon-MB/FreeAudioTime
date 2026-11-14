@@ -474,7 +474,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         TextView transparencyLabel = new TextView(this);
-        transparencyLabel.setText("Transparência");
+        transparencyLabel.setText("Transparência  •  0% opaco / 100% invisível");
         transparencyLabel.setTextColor(Color.WHITE);
         transparencyLabel.setTextSize(13);
         transparencyLabel.setPadding(0, dp(8), 0, 0);
@@ -484,7 +484,8 @@ public class StickerBuilderActivity extends AppCompatActivity {
         transparency.setMax(100);
         int initialAlpha = artworkBackgroundColor == Color.TRANSPARENT
                 ? 0 : Color.alpha(artworkBackgroundColor);
-        transparency.setProgress(initialAlpha);
+        int initialTransparency = 100 - Math.round(initialAlpha * 100f / 255f);
+        transparency.setProgress(initialTransparency);
         content.addView(transparency, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
@@ -504,7 +505,8 @@ public class StickerBuilderActivity extends AppCompatActivity {
         });
         transparency.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
-                selectedAlpha[0] = Math.max(0, Math.min(255, Math.round(progress * 255f / 100f)));
+                selectedAlpha[0] = 255 - Math.max(0, Math.min(255,
+                        Math.round(progress * 255f / 100f)));
                 updatePreview.run();
             }
             @Override public void onStartTrackingTouch(SeekBar bar) { }
