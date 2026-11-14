@@ -17,6 +17,76 @@ import java.util.LinkedHashMap;
 
 public class PlaybackStatistics {
 
+
+    // Tempo mínimo acumulado para considerar um playbackId uma reprodução válida.
+    private static final long MIN_PLAYBACK_SECONDS_FOR_COUNT = 10L;
+
+    /**
+     * Agrupa os registros por faixa e playbackId, soma os segmentos de duração
+     * e só considera reproduções que atingiram o mínimo configurado.
+     * O filtro de período é aplicado antes da soma para respeitar cada recap.
+     */
+    private static Map<String, Set<String>> getQualifiedTrackPlays(
+            JSONArray sessions,
+            java.util.function.Predicate<JSONObject> periodFilter) {
+        Map<String, Map<String, Long>> durationsByTrack = new HashMap<>();
+        if (sessions == null) return new HashMap<>();
+
+        for (int i = 0; i < sessions.length(); i++) {
+            JSONObject session = sessions.optJSONObject(i);
+            if (session == null || !periodFilter.test(session)) continue;
+
+            String title = session.optString("title", "").trim();
+            String artist = session.optString("artist", "").trim();
+            String playbackId = session.optString("playbackId", "").trim();
+            long duration = session.optLong("duration", 0L);
+            if (title.isEmpty() || playbackId.isEmpty() || duration <= 0L) continue;
+
+            String trackKey = title + "\\n" + artist;
+            durationsByTrack.putIfAbsent(trackKey, new HashMap<>());
+            Map<String, Long> playbackDurations = durationsByTrack.get(trackKey);
+            playbackDurations.put(
+                    playbackId,
+                    playbackDurations.getOrDefault(playbackId, 0L) + duration
+            );
+        }
+
+        Map<String, Set<String>> qualified = new HashMap<>();
+        for (Map.Entry<String, Map<String, Long>> track : durationsByTrack.entrySet()) {
+            for (Map.Entry<String, Long> playback : track.getValue().entrySet()) {
+                if (playback.getValue() >= MIN_PLAYBACK_SECONDS_FOR_COUNT) {
+                    qualified.putIfAbsent(track.getKey(), new HashSet<>());
+                    qualified.get(track.getKey()).add(playback.getKey());
+                }
+            }
+        }
+        return qualified;
+    }
+
+    private static String formatTrackRanking(Map<String, Set<String>> trackPlays) {
+        java.util.List<Map.Entry<String, Set<String>>> ranking =
+                new java.util.ArrayList<>(trackPlays.entrySet());
+        ranking.sort((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()));
+
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
+            Map.Entry<String, Set<String>> track = ranking.get(i);
+            String[] info = track.getKey().split("\\n", 2);
+            int plays = track.getValue().size();
+            result.append(i + 1)
+                    .append(". ")
+                    .append(info[0])
+                    .append(" — ")
+                    .append(info.length > 1 && !info[1].isEmpty()
+                            ? info[1] : "Artista desconhecido")
+                    .append(" — ")
+                    .append(plays)
+                    .append(plays == 1 ? " reprodução" : " reproduções")
+                    .append("\\n");
+        }
+        return result.length() == 0 ? "Nenhuma música" : result.toString();
+    }
+
     private static JSONArray getUniqueSessions(JSONObject history) {
 
         JSONArray sessions = history.optJSONArray("sessions");
@@ -313,54 +383,20 @@ public class PlaybackStatistics {
     public static String getTopTracksBetweenDates(
             JSONObject history, LocalDate startDate, LocalDate endDate) {
         JSONArray sessions = history.optJSONArray("sessions");
-        if (sessions == null || startDate == null || endDate == null
-                || endDate.isBefore(startDate)) {
+        if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
             return "Nenhuma música";
         }
-
-        Map<String, Set<String>> trackPlays = new HashMap<>();
-        for (int i = 0; i < sessions.length(); i++) {
-            JSONObject session = sessions.optJSONObject(i);
-            if (session == null) continue;
-
+        Map<String, Set<String>> plays = getQualifiedTrackPlays(sessions, session -> {
             String dateText = session.optString("date", "");
-            String title = session.optString("title", "").trim();
-            String artist = session.optString("artist", "").trim();
-            String playbackId = session.optString("playbackId", "");
-            if (dateText.length() < 10 || title.isEmpty() || playbackId.isEmpty()) continue;
-
+            if (dateText.length() < 10) return false;
             try {
                 LocalDate date = LocalDate.parse(dateText.substring(0, 10));
-                if (!date.isBefore(startDate) && !date.isAfter(endDate)) {
-                    String key = title + "\n" + artist;
-                    trackPlays.putIfAbsent(key, new HashSet<>());
-                    trackPlays.get(key).add(playbackId);
-                }
+                return !date.isBefore(startDate) && !date.isAfter(endDate);
             } catch (DateTimeParseException ignored) {
+                return false;
             }
-        }
-
-        java.util.List<Map.Entry<String, Set<String>>> ranking =
-                new java.util.ArrayList<>(trackPlays.entrySet());
-        ranking.sort((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()));
-
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
-            Map.Entry<String, Set<String>> track = ranking.get(i);
-            String[] info = track.getKey().split("\n", 2);
-            int plays = track.getValue().size();
-            result.append(i + 1)
-                    .append(". ")
-                    .append(info[0])
-                    .append(" — ")
-                    .append(info.length > 1 && !info[1].isEmpty()
-                            ? info[1] : "Artista desconhecido")
-                    .append(" — ")
-                    .append(plays)
-                    .append(plays == 1 ? " reprodução" : " reproduções")
-                    .append("\n");
-        }
-        return result.length() == 0 ? "Nenhuma música" : result.toString();
+        });
+        return formatTrackRanking(plays);
     }
 
     public static String getMostPlayedArtist(JSONObject history) {
@@ -408,50 +444,18 @@ public class PlaybackStatistics {
     }
 
     public static String getMostPlayedTrack(JSONObject history) {
-
         JSONArray sessions = history.optJSONArray("sessions");
-
-        if (sessions == null) {
-            return "Nenhuma música";
-        }
-
-        Map<String, Set<String>> trackPlays = new HashMap<>();
-
-        for (int i = 0; i < sessions.length(); i++) {
-
-            JSONObject session = sessions.optJSONObject(i);
-
-            if (session == null) {
-                continue;
-            }
-
-            String title = session.optString("title", "");
-            String artist = session.optString("artist", "");
-            String playbackId = session.optString("playbackId", "");
-
-            if (title.isEmpty() || playbackId.isEmpty()) {
-                continue;
-            }
-
-            String trackKey = title + "\n" + artist;
-
-            trackPlays.putIfAbsent(trackKey, new HashSet<>());
-            trackPlays.get(trackKey).add(playbackId);
-        }
+        Map<String, Set<String>> plays = getQualifiedTrackPlays(sessions, session -> true);
 
         String mostPlayedTrack = "Nenhuma música";
         int highestPlays = 0;
-
-        for (Map.Entry<String, Set<String>> track : trackPlays.entrySet()) {
-
-            int plays = track.getValue().size();
-
-            if (plays > highestPlays) {
-                highestPlays = plays;
-                mostPlayedTrack = track.getKey().replace("\n", " - ");
+        for (Map.Entry<String, Set<String>> track : plays.entrySet()) {
+            int count = track.getValue().size();
+            if (count > highestPlays) {
+                highestPlays = count;
+                mostPlayedTrack = track.getKey().replace("\\n", " - ");
             }
         }
-
         return mostPlayedTrack;
     }
     public static String getTopArtists(JSONObject history) {
@@ -506,65 +510,8 @@ public class PlaybackStatistics {
         return result.toString();
     }
     public static String getTopTracks(JSONObject history) {
-
         JSONArray sessions = history.optJSONArray("sessions");
-
-        if (sessions == null) {
-            return "Nenhuma música";
-        }
-
-        Map<String, java.util.Set<String>> trackPlays = new HashMap<>();
-
-        for (int i = 0; i < sessions.length(); i++) {
-
-            JSONObject session = sessions.optJSONObject(i);
-
-            if (session == null) {
-                continue;
-            }
-
-            String title = session.optString("title", "");
-            String artist = session.optString("artist", "");
-            String playbackId = session.optString("playbackId", "");
-
-            if (title.isEmpty() || playbackId.isEmpty()) {
-                continue;
-            }
-
-            String trackKey = title + "\n" + artist;
-
-            trackPlays.putIfAbsent(trackKey, new HashSet<>());
-            trackPlays.get(trackKey).add(playbackId);
-        }
-
-        java.util.List<Map.Entry<String, java.util.Set<String>>> ranking =
-                new java.util.ArrayList<>(trackPlays.entrySet());
-
-        ranking.sort((a, b) ->
-                Integer.compare(b.getValue().size(), a.getValue().size()));
-
-        StringBuilder result = new StringBuilder();
-
-        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
-
-            Map.Entry<String, java.util.Set<String>> track = ranking.get(i);
-
-            String[] info = track.getKey().split("\n", 2);
-
-            int plays = track.getValue().size();
-
-            result.append(i + 1)
-                    .append(". ")
-                    .append(info[0])
-                    .append(" — ")
-                    .append(info.length > 1 ? info[1] : "Artista desconhecido")
-                    .append(" — ")
-                    .append(plays)
-                    .append(plays == 1 ? " reprodução" : " reproduções")
-                    .append("\n");
-        }
-
-        return result.toString();
+        return formatTrackRanking(getQualifiedTrackPlays(sessions, session -> true));
     }
     public static String getWeeklyTopArtists(JSONObject history) {
 
@@ -643,87 +590,22 @@ public class PlaybackStatistics {
         return result.length() == 0 ? "Nenhum artista" : result.toString();
     }
     public static String getWeeklyTopTracks(JSONObject history) {
-
         JSONArray sessions = history.optJSONArray("sessions");
-
-        if (sessions == null) {
-            return "Nenhuma música";
-        }
-
-        java.util.Calendar calendar = java.util.Calendar.getInstance();
-
-        calendar.setFirstDayOfWeek(java.util.Calendar.MONDAY);
-        calendar.set(java.util.Calendar.DAY_OF_WEEK, java.util.Calendar.MONDAY);
-        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0);
-        calendar.set(java.util.Calendar.MINUTE, 0);
-        calendar.set(java.util.Calendar.SECOND, 0);
-        calendar.set(java.util.Calendar.MILLISECOND, 0);
-
-        java.text.SimpleDateFormat formatter =
-                new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
-
-        String weekStart = formatter.format(calendar.getTime());
-
-        calendar.add(java.util.Calendar.DAY_OF_YEAR, 7);
-
-        String weekEnd = formatter.format(calendar.getTime());
-
-        Map<String, java.util.Set<String>> trackPlays = new HashMap<>();
-
-        for (int i = 0; i < sessions.length(); i++) {
-
-            JSONObject session = sessions.optJSONObject(i);
-
-            if (session == null) continue;
-
-            String date = session.optString("date", "");
-            String title = session.optString("title", "");
-            String artist = session.optString("artist", "");
-            String playbackId = session.optString("playbackId", "");
-
-            if (date.length() < 10 || title.isEmpty() || playbackId.isEmpty()) {
-                continue;
+        LocalDate today = LocalDate.now();
+        LocalDate weekStart = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(
+                java.time.DayOfWeek.MONDAY));
+        LocalDate weekEnd = weekStart.plusDays(6);
+        Map<String, Set<String>> plays = getQualifiedTrackPlays(sessions, session -> {
+            String dateText = session.optString("date", "");
+            if (dateText.length() < 10) return false;
+            try {
+                LocalDate date = LocalDate.parse(dateText.substring(0, 10));
+                return !date.isBefore(weekStart) && !date.isAfter(weekEnd);
+            } catch (DateTimeParseException ignored) {
+                return false;
             }
-
-            String day = date.substring(0, 10);
-
-            if (day.compareTo(weekStart) >= 0 &&
-                    day.compareTo(weekEnd) < 0) {
-
-                String key = title + "\n" + artist;
-
-                trackPlays.putIfAbsent(key, new HashSet<>());
-                trackPlays.get(key).add(playbackId);
-            }
-        }
-
-        java.util.List<Map.Entry<String, java.util.Set<String>>> ranking =
-                new java.util.ArrayList<>(trackPlays.entrySet());
-
-        ranking.sort((a, b) ->
-                Integer.compare(b.getValue().size(), a.getValue().size()));
-
-        StringBuilder result = new StringBuilder();
-
-        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
-
-            Map.Entry<String, java.util.Set<String>> track = ranking.get(i);
-
-            String[] info = track.getKey().split("\n", 2);
-            int plays = track.getValue().size();
-
-            result.append(i + 1)
-                    .append(". ")
-                    .append(info[0])
-                    .append(" — ")
-                    .append(info.length > 1 ? info[1] : "Artista desconhecido")
-                    .append(" — ")
-                    .append(plays)
-                    .append(plays == 1 ? " reprodução" : " reproduções")
-                    .append("\n");
-        }
-
-        return result.length() == 0 ? "Nenhuma música" : result.toString();
+        });
+        return formatTrackRanking(plays);
     }
     public static String getMonthlyTopArtists(JSONObject history) {
 
@@ -787,75 +669,18 @@ public class PlaybackStatistics {
         return result.length() == 0 ? "Nenhum artista" : result.toString();
     }
     public static String getMonthlyTopTracks(JSONObject history) {
-
         JSONArray sessions = history.optJSONArray("sessions");
-
-        if (sessions == null) return "Nenhuma música";
-
-        java.util.Calendar calendar = java.util.Calendar.getInstance();
-
-        int currentYear = calendar.get(java.util.Calendar.YEAR);
-        int currentMonth = calendar.get(java.util.Calendar.MONTH) + 1;
-
-        Map<String, java.util.Set<String>> trackPlays = new HashMap<>();
-
-        for (int i = 0; i < sessions.length(); i++) {
-
-            JSONObject session = sessions.optJSONObject(i);
-            if (session == null) continue;
-
-            String date = session.optString("date", "");
-            String title = session.optString("title", "");
-            String artist = session.optString("artist", "");
-            String playbackId = session.optString("playbackId", "");
-
-            if (date.length() < 7 || title.isEmpty() || playbackId.isEmpty()) {
-                continue;
-            }
-
+        YearMonth currentMonth = YearMonth.now();
+        Map<String, Set<String>> plays = getQualifiedTrackPlays(sessions, session -> {
+            String dateText = session.optString("date", "");
+            if (dateText.length() < 7) return false;
             try {
-                int year = Integer.parseInt(date.substring(0, 4));
-                int month = Integer.parseInt(date.substring(5, 7));
-
-                if (year == currentYear && month == currentMonth) {
-
-                    String key = title + "\n" + artist;
-
-                    trackPlays.putIfAbsent(key, new HashSet<>());
-                    trackPlays.get(key).add(playbackId);
-                }
-
-            } catch (NumberFormatException ignored) {
+                return YearMonth.parse(dateText.substring(0, 7)).equals(currentMonth);
+            } catch (DateTimeParseException ignored) {
+                return false;
             }
-        }
-
-        java.util.List<Map.Entry<String, java.util.Set<String>>> ranking =
-                new java.util.ArrayList<>(trackPlays.entrySet());
-
-        ranking.sort((a, b) ->
-                Integer.compare(b.getValue().size(), a.getValue().size()));
-
-        StringBuilder result = new StringBuilder();
-
-        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
-
-            Map.Entry<String, java.util.Set<String>> track = ranking.get(i);
-
-            String[] info = track.getKey().split("\n", 2);
-            int plays = track.getValue().size();
-
-            result.append(i + 1)
-                    .append(". ")
-                    .append(info[0])
-                    .append(" — ")
-                    .append(info.length > 1 ? info[1] : "Artista desconhecido")
-                    .append(" — ")
-                    .append(plays)
-                    .append(plays == 1 ? " reprodução" : " reproduções")
-                    .append("\n");
-        }
-
-        return result.length() == 0 ? "Nenhuma música" : result.toString();
+        });
+        return formatTrackRanking(plays);
     }
     public static String getYearlyTopArtists(JSONObject history) {
 
@@ -917,72 +742,18 @@ public class PlaybackStatistics {
         return result.length() == 0 ? "Nenhum artista" : result.toString();
     }
     public static String getYearlyTopTracks(JSONObject history) {
-
         JSONArray sessions = history.optJSONArray("sessions");
-
-        if (sessions == null) return "Nenhuma música";
-
-        int currentYear = java.util.Calendar.getInstance()
-                .get(java.util.Calendar.YEAR);
-
-        Map<String, java.util.Set<String>> trackPlays = new HashMap<>();
-
-        for (int i = 0; i < sessions.length(); i++) {
-
-            JSONObject session = sessions.optJSONObject(i);
-            if (session == null) continue;
-
-            String date = session.optString("date", "");
-            String title = session.optString("title", "");
-            String artist = session.optString("artist", "");
-            String playbackId = session.optString("playbackId", "");
-
-            if (date.length() < 4 || title.isEmpty() || playbackId.isEmpty()) {
-                continue;
-            }
-
+        int currentYear = LocalDate.now().getYear();
+        Map<String, Set<String>> plays = getQualifiedTrackPlays(sessions, session -> {
+            String dateText = session.optString("date", "");
+            if (dateText.length() < 4) return false;
             try {
-                int year = Integer.parseInt(date.substring(0, 4));
-
-                if (year == currentYear) {
-
-                    String key = title + "\n" + artist;
-
-                    trackPlays.putIfAbsent(key, new HashSet<>());
-                    trackPlays.get(key).add(playbackId);
-                }
-
+                return Integer.parseInt(dateText.substring(0, 4)) == currentYear;
             } catch (NumberFormatException ignored) {
+                return false;
             }
-        }
-
-        java.util.List<Map.Entry<String, java.util.Set<String>>> ranking =
-                new java.util.ArrayList<>(trackPlays.entrySet());
-
-        ranking.sort((a, b) ->
-                Integer.compare(b.getValue().size(), a.getValue().size()));
-
-        StringBuilder result = new StringBuilder();
-
-        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
-
-            Map.Entry<String, java.util.Set<String>> track = ranking.get(i);
-
-            String[] info = track.getKey().split("\n", 2);
-            int plays = track.getValue().size();
-
-            result.append(i + 1)
-                    .append(". ")
-                    .append(info[0])
-                    .append(" — ")
-                    .append(info.length > 1 ? info[1] : "Artista desconhecido")
-                    .append(" — ")
-                    .append(plays)
-                    .append(plays == 1 ? " reprodução" : " reproduções")
-                    .append("\n");
-        }
-
-        return result.length() == 0 ? "Nenhuma música" : result.toString();
+        });
+        return formatTrackRanking(plays);
     }
 
     public static String getBestDay(JSONObject history) {
@@ -1147,66 +918,14 @@ public class PlaybackStatistics {
     }
 
     public static String getDailyTopTracks(JSONObject history, String selectedDate) {
-
         JSONArray sessions = history.optJSONArray("sessions");
-
-        if (sessions == null) {
-            return "Nenhuma música";
-        }
-
-        Map<String, java.util.Set<String>> trackPlays = new HashMap<>();
-
-        for (int i = 0; i < sessions.length(); i++) {
-
-            JSONObject session = sessions.optJSONObject(i);
-
-            if (session == null) continue;
-
-            String date = session.optString("date", "");
-            String title = session.optString("title", "");
-            String artist = session.optString("artist", "");
-            String playbackId = session.optString("playbackId", "");
-
-            if (date.length() < 10 || title.isEmpty() || playbackId.isEmpty()) {
-                continue;
-            }
-
-            if (date.substring(0, 10).equals(selectedDate)) {
-
-                String key = title + "\n" + artist;
-
-                trackPlays.putIfAbsent(key, new HashSet<>());
-                trackPlays.get(key).add(playbackId);
-            }
-        }
-
-        java.util.List<Map.Entry<String, java.util.Set<String>>> ranking =
-                new java.util.ArrayList<>(trackPlays.entrySet());
-
-        ranking.sort((a, b) ->
-                Integer.compare(b.getValue().size(), a.getValue().size()));
-
-        StringBuilder result = new StringBuilder();
-
-        for (int i = 0; i < Math.min(5, ranking.size()); i++) {
-
-            Map.Entry<String, java.util.Set<String>> track = ranking.get(i);
-
-            String[] info = track.getKey().split("\n", 2);
-            int plays = track.getValue().size();
-
-            result.append(i + 1)
-                    .append(". ")
-                    .append(info[0])
-                    .append(" — ")
-                    .append(info.length > 1 ? info[1] : "Artista desconhecido")
-                    .append(" — ")
-                    .append(plays)
-                    .append(plays == 1 ? " reprodução" : " reproduções")
-                    .append("\n");
-        }
-
-        return result.length() == 0 ? "Nenhuma música" : result.toString();
+        if (selectedDate == null || selectedDate.length() < 10) return "Nenhuma música";
+        Map<String, Set<String>> plays = getQualifiedTrackPlays(sessions, session -> {
+            String dateText = session.optString("date", "");
+            return dateText.length() >= 10
+                    && dateText.substring(0, 10).equals(selectedDate.substring(0, 10));
+        });
+        return formatTrackRanking(plays);
     }
 
     public static int getDailyUniqueTracks(JSONObject history, String selectedDate) {
