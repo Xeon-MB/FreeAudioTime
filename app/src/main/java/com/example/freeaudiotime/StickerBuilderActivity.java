@@ -488,8 +488,10 @@ public class StickerBuilderActivity extends AppCompatActivity {
 
         SeekBar transparency = new SeekBar(this);
         transparency.setMax(100);
+        // Ao escolher uma cor personalizada partindo do fundo transparente,
+        // ela deve aparecer por padrão; transparência pode ser ajustada no slider.
         int initialAlpha = artworkBackgroundColor == Color.TRANSPARENT
-                ? 0 : Color.alpha(artworkBackgroundColor);
+                ? 255 : Color.alpha(artworkBackgroundColor);
         int initialTransparency = 100 - Math.round(initialAlpha * 100f / 255f);
         transparency.setProgress(initialTransparency);
         content.addView(transparency, new LinearLayout.LayoutParams(
