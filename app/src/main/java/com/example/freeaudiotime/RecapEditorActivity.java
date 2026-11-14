@@ -746,6 +746,8 @@ import android.widget.SeekBar;
 
                     card.setOnClickListener(v -> {
                         addSavedStickerElement(item);
+                        Toast.makeText(this, item.getName() + " adicionado ao recap!",
+                                Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     });
                     row.addView(card);
@@ -766,8 +768,6 @@ import android.widget.SeekBar;
             canvasView.setSelectedElementId(sticker.getId());
             canvasView.invalidate();
             updateUndoRedoButtons();
-            Toast.makeText(this, item.getName() + " adicionado ao recap!",
-                    Toast.LENGTH_SHORT).show();
         }
 
         private int dp(float value) {
