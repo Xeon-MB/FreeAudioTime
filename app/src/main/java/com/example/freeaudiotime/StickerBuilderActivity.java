@@ -53,7 +53,6 @@ public class StickerBuilderActivity extends AppCompatActivity {
     private StickerDrawingView drawingView;
     private int currentColor = Color.rgb(183, 255, 0);
     private float currentStrokeWidth = 9f;
-    private int artworkBackgroundColor = Color.TRANSPARENT;
     private int selectedTextIndex = -1;
     private boolean movingSelectedText = false;
     private int selectedCommandIndex = -1;
@@ -95,7 +94,6 @@ public class StickerBuilderActivity extends AppCompatActivity {
         addButton(top, "Desfazer", v -> drawingView.undo());
         addButton(top, "Refazer", v -> drawingView.redo());
         addButton(top, "Limpar", v -> confirmClear());
-        addButton(top, "Fundo", v -> showBackgroundDialog());
         root.addView(top, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
 
@@ -399,82 +397,6 @@ public class StickerBuilderActivity extends AppCompatActivity {
         }
     }
 
-    private void showBackgroundDialog() {
-        String[] options = {
-                "Transparente (padrão)",
-                "Branco",
-                "Preto",
-                "Verde-lima",
-                "Azul",
-                "Rosa",
-                "Escolher outra cor..."
-        };
-        int[] colors = {
-                Color.TRANSPARENT,
-                Color.WHITE,
-                Color.BLACK,
-                Color.rgb(183, 255, 0),
-                Color.rgb(0, 150, 255),
-                Color.rgb(255, 90, 165)
-        };
-
-        new AlertDialog.Builder(this)
-                .setTitle("Fundo do sticker")
-                .setItems(options, (dialog, which) -> {
-                    if (which == options.length - 1) {
-                        showBackgroundColorWheelDialog();
-                    } else {
-                        drawingView.setArtworkBackgroundColor(colors[which]);
-                    }
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
-    }
-
-    private void showBackgroundColorWheelDialog() {
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        int padding = dp(16);
-        content.setPadding(padding, padding, padding, padding);
-
-        ColorWheelView wheel = new ColorWheelView(this);
-        wheel.setColor(artworkBackgroundColor == Color.TRANSPARENT
-                ? Color.WHITE : artworkBackgroundColor);
-        wheel.setBrightness(1f);
-        content.addView(wheel, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(280)));
-
-        View preview = new View(this);
-        preview.setBackgroundColor(wheel.getColor());
-        LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(38));
-        previewParams.topMargin = padding / 2;
-        content.addView(preview, previewParams);
-
-        SeekBar brightness = new SeekBar(this);
-        brightness.setMax(100);
-        brightness.setProgress(100);
-        brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
-                wheel.setBrightness(Math.max(8, progress) / 100f);
-                preview.setBackgroundColor(wheel.getColor());
-            }
-            @Override public void onStartTrackingTouch(SeekBar bar) { }
-            @Override public void onStopTrackingTouch(SeekBar bar) { }
-        });
-        wheel.setOnColorChangedListener(preview::setBackgroundColor);
-        content.addView(brightness, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        new AlertDialog.Builder(this)
-                .setTitle("Cor do fundo")
-                .setView(content)
-                .setPositiveButton("Aplicar", (dialog, which) ->
-                        drawingView.setArtworkBackgroundColor(wheel.getColor()))
-                .setNegativeButton("Cancelar", null)
-                .show();
-    }
-
     private void confirmClear() {
         new AlertDialog.Builder(this)
                 .setTitle("Limpar desenho?")
@@ -538,11 +460,6 @@ public class StickerBuilderActivity extends AppCompatActivity {
         }
         void setColor(int next) { color = next; }
         void setStrokeWidth(float next) { strokeWidth = next; }
-
-        void setArtworkBackgroundColor(int next) {
-            artworkBackgroundColor = next;
-            invalidate();
-        }
 
         void deleteSelectedElement() {
             if (selectedCommandIndex < 0 || selectedCommandIndex >= commands.size()) {
@@ -637,9 +554,6 @@ public class StickerBuilderActivity extends AppCompatActivity {
         Bitmap exportBitmap() {
             Bitmap bitmap = Bitmap.createBitmap(ART_SIZE, ART_SIZE, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmap);
-            if (artworkBackgroundColor != Color.TRANSPARENT) {
-                canvas.drawColor(artworkBackgroundColor);
-            }
             canvas.saveLayer(0, 0, ART_SIZE, ART_SIZE, null);
             for (DrawCommand command : commands) drawCommand(canvas, command, false);
             canvas.restore();
@@ -739,15 +653,6 @@ public class StickerBuilderActivity extends AppCompatActivity {
                     }
                 }
             }
-            if (artworkBackgroundColor != Color.TRANSPARENT) {
-                Paint background = new Paint(Paint.ANTI_ALIAS_FLAG);
-                background.setColor(artworkBackgroundColor);
-                background.setStyle(Paint.Style.FILL);
-                canvas.drawRect(offsetX, offsetY,
-                        offsetX + ART_SIZE * scale,
-                        offsetY + ART_SIZE * scale, background);
-            }
-
             Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
             border.setColor(Color.rgb(110, 120, 112));
             border.setStyle(Paint.Style.STROKE);
