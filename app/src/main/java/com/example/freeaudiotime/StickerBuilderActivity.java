@@ -454,9 +454,15 @@ public class StickerBuilderActivity extends AppCompatActivity {
         content.addView(wheel, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(260)));
 
-        View preview = new View(this);
+        TextView preview = new TextView(this);
+        preview.setGravity(Gravity.CENTER);
+        preview.setTextColor(Color.WHITE);
+        preview.setTextSize(13);
+        preview.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        preview.setShadowLayer(dp(2), 0, dp(1), Color.BLACK);
+        preview.setPadding(dp(8), 0, dp(8), 0);
         LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(38));
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(48));
         previewParams.topMargin = padding / 2;
         content.addView(preview, previewParams);
 
@@ -482,18 +488,29 @@ public class StickerBuilderActivity extends AppCompatActivity {
 
         SeekBar transparency = new SeekBar(this);
         transparency.setMax(100);
+        // Ao escolher uma cor personalizada partindo do fundo transparente,
+        // ela deve aparecer por padrão; transparência pode ser ajustada no slider.
         int initialAlpha = artworkBackgroundColor == Color.TRANSPARENT
-                ? 0 : Color.alpha(artworkBackgroundColor);
+                ? 255 : Color.alpha(artworkBackgroundColor);
         int initialTransparency = 100 - Math.round(initialAlpha * 100f / 255f);
         transparency.setProgress(initialTransparency);
         content.addView(transparency, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         final int[] selectedAlpha = {initialAlpha};
+        // Guarda a última cor emitida pela roda para aplicar exatamente a seleção do usuário.
+        final int[] selectedColor = {wheel.getColor()};
         Runnable updatePreview = () -> {
-            int color = wheel.getColor();
-            preview.setBackgroundColor(Color.argb(selectedAlpha[0],
-                    Color.red(color), Color.green(color), Color.blue(color)));
+            int color = selectedColor[0];
+            preview.setBackgroundColor(color);
+            preview.setText(String.format(java.util.Locale.ROOT,
+                    "#%06X  •  %d%% opaco",
+                    color & 0xFFFFFF, Math.round(selectedAlpha[0] * 100f / 255f)));
+            double luminance = (0.299 * Color.red(color)
+                    + 0.587 * Color.green(color) + 0.114 * Color.blue(color));
+            preview.setTextColor(luminance < 145 ? Color.WHITE : Color.BLACK);
+            preview.setShadowLayer(luminance < 145 ? dp(2) : 0,
+                    0, dp(1), luminance < 145 ? Color.BLACK : Color.TRANSPARENT);
         };
         brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
@@ -512,14 +529,17 @@ public class StickerBuilderActivity extends AppCompatActivity {
             @Override public void onStartTrackingTouch(SeekBar bar) { }
             @Override public void onStopTrackingTouch(SeekBar bar) { }
         });
-        wheel.setOnColorChangedListener(color -> updatePreview.run());
+        wheel.setOnColorChangedListener(color -> {
+            selectedColor[0] = color;
+            updatePreview.run();
+        });
         updatePreview.run();
 
         new AlertDialog.Builder(this)
                 .setTitle("Cor do fundo")
                 .setView(content)
                 .setPositiveButton("Aplicar", (dialog, which) -> {
-                    int color = wheel.getColor();
+                    int color = selectedColor[0];
                     drawingView.setArtworkBackgroundColor(Color.argb(selectedAlpha[0],
                             Color.red(color), Color.green(color), Color.blue(color)));
                 })
