@@ -77,7 +77,7 @@ import android.widget.SeekBar;
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         String stickerPath = result.getData().getStringExtra(StickerBuilderActivity.EXTRA_STICKER_PATH);
                         if (stickerPath != null && !stickerPath.isEmpty()) {
-                            addCreatedStickerElement(stickerPath);
+                            showCreatedStickerNameDialog(stickerPath);
                         }
                     }
                 });
@@ -669,7 +669,105 @@ import android.widget.SeekBar;
                 grid.addView(row);
             }
 
+            addSavedStickerCards(grid, dialog);
             dialog.show();
+        }
+
+        private void addSavedStickerCards(LinearLayout grid, AlertDialog dialog) {
+            List<StickerStorage.StickerItem> savedStickers =
+                    StickerStorage.getStickers(this);
+            if (savedStickers.isEmpty()) return;
+
+            TextView sectionTitle = new TextView(this);
+            sectionTitle.setText("MEUS STICKERS");
+            sectionTitle.setTextColor(Color.rgb(183, 255, 0));
+            sectionTitle.setTextSize(12);
+            sectionTitle.setTypeface(android.graphics.Typeface.DEFAULT,
+                    android.graphics.Typeface.BOLD);
+            sectionTitle.setPadding(dp(8), dp(14), dp(8), dp(8));
+            grid.addView(sectionTitle);
+
+            for (int start = 0; start < savedStickers.size(); start += 3) {
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER);
+                LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                rowParams.bottomMargin = dp(8);
+                row.setLayoutParams(rowParams);
+
+                for (int column = 0; column < 3; column++) {
+                    int index = start + column;
+                    if (index >= savedStickers.size()) {
+                        row.addView(new View(this), new LinearLayout.LayoutParams(0,
+                                dp(112), 1f));
+                        continue;
+                    }
+
+                    StickerStorage.StickerItem item = savedStickers.get(index);
+                    LinearLayout card = new LinearLayout(this);
+                    card.setOrientation(LinearLayout.VERTICAL);
+                    card.setGravity(android.view.Gravity.CENTER);
+                    card.setPadding(dp(5), dp(8), dp(5), dp(8));
+
+                    android.graphics.drawable.GradientDrawable background =
+                            new android.graphics.drawable.GradientDrawable();
+                    background.setColor(Color.rgb(25, 34, 28));
+                    background.setCornerRadius(dp(12));
+                    background.setStroke(dp(1), Color.rgb(57, 78, 61));
+                    card.setBackground(background);
+
+                    LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                            0, dp(112), 1f);
+                    cardParams.setMargins(dp(4), dp(2), dp(4), dp(2));
+                    card.setLayoutParams(cardParams);
+
+                    android.widget.ImageView preview = new android.widget.ImageView(this);
+                    Bitmap bitmap = BitmapFactory.decodeFile(item.getPath());
+                    if (bitmap != null) {
+                        preview.setImageBitmap(bitmap);
+                    }
+                    preview.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+                    preview.setBackgroundColor(Color.rgb(15, 20, 16));
+                    card.addView(preview, new LinearLayout.LayoutParams(dp(64), dp(64)));
+
+                    TextView label = new TextView(this);
+                    label.setText(item.getName());
+                    label.setTextColor(Color.rgb(240, 235, 221));
+                    label.setTextSize(11);
+                    label.setGravity(android.view.Gravity.CENTER);
+                    label.setMaxLines(2);
+                    LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT);
+                    labelParams.topMargin = dp(4);
+                    card.addView(label, labelParams);
+
+                    card.setOnClickListener(v -> {
+                        addSavedStickerElement(item);
+                        dialog.dismiss();
+                    });
+                    row.addView(card);
+                }
+                grid.addView(row);
+            }
+        }
+
+        private void addSavedStickerElement(StickerStorage.StickerItem item) {
+            undoRedoManager.pushState(currentTemplate);
+            RecapElementModel sticker = new RecapElementModel(
+                    RecapElementBinding.CUSTOM_STATIC_IMAGE,
+                    0.31f, 0.36f, 0.38f, 0.25f
+            );
+            sticker.setImagePath(item.getPath());
+            sticker.setZIndex(currentTemplate.getElements().size());
+            currentTemplate.getElements().add(sticker);
+            canvasView.setSelectedElementId(sticker.getId());
+            canvasView.invalidate();
+            updateUndoRedoButtons();
+            Toast.makeText(this, item.getName() + " adicionado ao recap!",
+                    Toast.LENGTH_SHORT).show();
         }
 
         private int dp(float value) {
@@ -700,19 +798,46 @@ import android.widget.SeekBar;
             stickerBuilderLauncher.launch(new Intent(this, StickerBuilderActivity.class));
         }
 
-        private void addCreatedStickerElement(String stickerPath) {
-            undoRedoManager.pushState(currentTemplate);
-            RecapElementModel sticker = new RecapElementModel(
-                    RecapElementBinding.CUSTOM_STATIC_IMAGE,
-                    0.31f, 0.36f, 0.38f, 0.25f
-            );
-            sticker.setImagePath(stickerPath);
-            sticker.setZIndex(currentTemplate.getElements().size());
-            currentTemplate.getElements().add(sticker);
-            canvasView.setSelectedElementId(sticker.getId());
-            canvasView.invalidate();
-            updateUndoRedoButtons();
-            Toast.makeText(this, "Sticker criado e adicionado ao recap!", Toast.LENGTH_SHORT).show();
+        private void showCreatedStickerNameDialog(String temporaryPath) {
+            EditText input = new EditText(this);
+            input.setSingleLine(true);
+            input.setHint("Nome do sticker");
+
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setTitle("Salvar na galeria")
+                    .setMessage("Escolha um nome para encontrar este sticker na aba + STICKER.")
+                    .setView(input)
+                    .setPositiveButton("Salvar", null)
+                    .setNegativeButton("Cancelar", (d, which) -> {
+                        new File(temporaryPath).delete();
+                    })
+                    .create();
+
+            dialog.setOnShowListener(ignored ->
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                        String name = input.getText().toString().trim();
+                        if (name.isEmpty()) {
+                            input.setError("Digite um nome");
+                            return;
+                        }
+                        try {
+                            StickerStorage.StickerItem saved =
+                                    StickerStorage.saveSticker(this, name, new File(temporaryPath));
+                            new File(temporaryPath).delete();
+                            addCreatedStickerElement(saved);
+                            dialog.dismiss();
+                        } catch (Exception e) {
+                            Toast.makeText(this, "Não foi possível salvar o sticker na galeria.",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    }));
+            dialog.show();
+        }
+
+        private void addCreatedStickerElement(StickerStorage.StickerItem item) {
+            addSavedStickerElement(item);
+            Toast.makeText(this, "Sticker salvo na galeria e adicionado ao recap!",
+                    Toast.LENGTH_SHORT).show();
         }
 
         private void saveCustomStickerElement(Uri uri) {
