@@ -454,9 +454,15 @@ public class StickerBuilderActivity extends AppCompatActivity {
         content.addView(wheel, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(260)));
 
-        View preview = new View(this);
+        TextView preview = new TextView(this);
+        preview.setGravity(Gravity.CENTER);
+        preview.setTextColor(Color.WHITE);
+        preview.setTextSize(13);
+        preview.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        preview.setShadowLayer(dp(2), 0, dp(1), Color.BLACK);
+        preview.setPadding(dp(8), 0, dp(8), 0);
         LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(38));
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(48));
         previewParams.topMargin = padding / 2;
         content.addView(preview, previewParams);
 
@@ -492,8 +498,16 @@ public class StickerBuilderActivity extends AppCompatActivity {
         final int[] selectedAlpha = {initialAlpha};
         Runnable updatePreview = () -> {
             int color = wheel.getColor();
-            preview.setBackgroundColor(Color.argb(selectedAlpha[0],
-                    Color.red(color), Color.green(color), Color.blue(color)));
+            // A barra mostra a cor RGB sem transparência; o percentual informa o alpha aplicado.
+            preview.setBackgroundColor(color);
+            preview.setText(String.format(java.util.Locale.ROOT,
+                    "#%06X  •  %d%% opaco",
+                    color & 0xFFFFFF, Math.round(selectedAlpha[0] * 100f / 255f)));
+            double luminance = (0.299 * Color.red(color)
+                    + 0.587 * Color.green(color) + 0.114 * Color.blue(color));
+            preview.setTextColor(luminance < 145 ? Color.WHITE : Color.BLACK);
+            preview.setShadowLayer(luminance < 145 ? dp(2) : 0,
+                    0, dp(1), luminance < 145 ? Color.BLACK : Color.TRANSPARENT);
         };
         brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
