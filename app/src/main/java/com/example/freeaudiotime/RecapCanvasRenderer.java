@@ -152,6 +152,10 @@ public class RecapCanvasRenderer {
                         renderAchievements(canvas, elemX, elemY, elemW, elemH, data, elem, accentColor, textColor);
                         break;
 
+                    case TOP_TRACK_ARTWORK:
+                        renderDynamicTrackArtwork(context, canvas, elemX, elemY, elemW, elemH, data, elem);
+                        break;
+
                     case CUSTOM_STATIC_IMAGE:
                         renderCustomImageOrSticker(context, canvas, elemX, elemY, elemW, elemH, elem);
                         break;
@@ -643,6 +647,8 @@ public class RecapCanvasRenderer {
         String displayText;
         if (elem.getBinding() == RecapElementBinding.CUSTOM_STATIC_TEXT) {
             displayText = elem.getCustomText();
+        } else if (isDynamicItemTextBinding(elem.getBinding())) {
+            displayText = getDynamicItemText(elem, data);
         } else {
             displayText = data != null ? data.getValue(elem.getBinding()) : null;
             if (displayText == null || displayText.trim().isEmpty()) {
@@ -712,6 +718,89 @@ public class RecapCanvasRenderer {
 
         String fittedText = TextUtils.ellipsize(displayText, textPaint, w, TextUtils.TruncateAt.END).toString();
         canvas.drawText(fittedText, textX, baseline, textPaint);
+    }
+
+    private static boolean isDynamicItemTextBinding(RecapElementBinding binding) {
+        if (binding == null) return false;
+        switch (binding) {
+            case SECONDARY_ARTIST_RANK:
+            case SECONDARY_ARTIST_NAME:
+            case SECONDARY_ARTIST_TIME:
+            case TOP_TRACK_ITEM_TITLE:
+            case TOP_TRACK_ITEM_ARTIST:
+            case TOP_TRACK_ITEM_DURATION:
+            case ACHIEVEMENT_ITEM_TITLE:
+            case ACHIEVEMENT_ITEM_DATE:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static String getDynamicItemText(RecapElementModel elem, DynamicRecapData data) {
+        if (elem.getCustomText() != null && !elem.getCustomText().isEmpty()) {
+            return elem.getCustomText();
+        }
+        if (data == null || elem.getDynamicItemIndex() < 0) return null;
+        int index = elem.getDynamicItemIndex();
+        switch (elem.getBinding()) {
+            case SECONDARY_ARTIST_RANK:
+                if (index < data.getSecondaryArtists().size()) {
+                    return String.format(java.util.Locale.ROOT, "%02d", data.getSecondaryArtists().get(index).rank);
+                }
+                break;
+            case SECONDARY_ARTIST_NAME:
+                if (index < data.getSecondaryArtists().size()) return data.getSecondaryArtists().get(index).name;
+                break;
+            case SECONDARY_ARTIST_TIME:
+                if (index < data.getSecondaryArtists().size()) return data.getSecondaryArtists().get(index).timeFormatted;
+                break;
+            case TOP_TRACK_ITEM_TITLE:
+                if (index < data.getTopTracks().size()) return data.getTopTracks().get(index).title;
+                break;
+            case TOP_TRACK_ITEM_ARTIST:
+                if (index < data.getTopTracks().size()) return data.getTopTracks().get(index).artist;
+                break;
+            case TOP_TRACK_ITEM_DURATION:
+                if (index < data.getTopTracks().size()) return data.getTopTracks().get(index).duration;
+                break;
+            case ACHIEVEMENT_ITEM_TITLE:
+                if (index < data.getUnlockedAchievements().size()) return "🏆 " + data.getUnlockedAchievements().get(index).title;
+                break;
+            case ACHIEVEMENT_ITEM_DATE:
+                if (index < data.getUnlockedAchievements().size()) return data.getUnlockedAchievements().get(index).formattedDate;
+                break;
+            default:
+                break;
+        }
+        return null;
+    }
+
+    private static void renderDynamicTrackArtwork(
+            Context context, Canvas canvas, float x, float y, float w, float h,
+            DynamicRecapData data, RecapElementModel elem
+    ) {
+        String artworkPath = elem.getImagePath();
+        if ((artworkPath == null || artworkPath.isEmpty())
+                && data != null && elem.getDynamicItemIndex() >= 0
+                && elem.getDynamicItemIndex() < data.getTopTracks().size()) {
+            artworkPath = data.getTopTracks().get(elem.getDynamicItemIndex()).artworkPath;
+        }
+
+        Bitmap bitmap = null;
+        if (artworkPath != null && !artworkPath.isEmpty() && context != null) {
+            File file = new File(artworkPath);
+            if (!file.isAbsolute()) file = new File(context.getFilesDir(), artworkPath);
+            if (file.isFile()) bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+        }
+        if (bitmap != null) {
+            drawBitmapCenterCrop(canvas, bitmap, new RectF(x, y, x + w, y + h));
+            bitmap.recycle();
+        } else {
+            Paint placeholder = new Paint(Paint.ANTI_ALIAS_FLAG);
+            placeholder.setColor(Color.rgb(30, 30, 30));
+            canvas.drawRect(x, y, x + w, y + h, placeholder);
+        }
     }
 
     private static void renderArtistImage(
