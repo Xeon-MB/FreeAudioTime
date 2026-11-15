@@ -240,8 +240,7 @@ public interface OnElementSelectionListener {
                     if (elem != null && getWidth() > 0 && getHeight() > 0) {
                         float dx = (touchX - lastTouchX) / getWidth();
                         float dy = (touchY - lastTouchY) / getHeight();
-                        elem.setX(Math.max(0.0f, Math.min(1.0f - elem.getWidth(), elem.getX() + dx)));
-                        elem.setY(Math.max(0.0f, Math.min(1.0f - elem.getHeight(), elem.getY() + dy)));
+                        moveElementAndGroup(elem, dx, dy);
                         lastTouchX = touchX;
                         lastTouchY = touchY;
                         invalidate();
@@ -279,6 +278,22 @@ public interface OnElementSelectionListener {
 
     private float distance(float x1, float y1, float x2, float y2) {
         return (float) Math.hypot(x1 - x2, y1 - y2);
+    }
+
+    private void moveElementAndGroup(RecapElementModel selected, float dx, float dy) {
+        String groupId = selected.getGroupId();
+        if (groupId == null || groupId.isEmpty() || template == null || template.getElements() == null) {
+            selected.setX(Math.max(0f, Math.min(1f - selected.getWidth(), selected.getX() + dx)));
+            selected.setY(Math.max(0f, Math.min(1f - selected.getHeight(), selected.getY() + dy)));
+            return;
+        }
+
+        for (RecapElementModel element : template.getElements()) {
+            if (groupId.equals(element.getGroupId())) {
+                element.setX(Math.max(0f, Math.min(1f - element.getWidth(), element.getX() + dx)));
+                element.setY(Math.max(0f, Math.min(1f - element.getHeight(), element.getY() + dy)));
+            }
+        }
     }
 
     private void resizeSelectedElement(float touchX, float touchY) {
