@@ -28,7 +28,8 @@ import android.widget.SeekBar;
     import androidx.activity.result.contract.ActivityResultContracts;
     import androidx.appcompat.app.AppCompatActivity;
     
-    import org.json.JSONObject;
+    import org.json.JSONArray;
+import org.json.JSONObject;
     
     import java.io.File;
     import java.io.FileOutputStream;
@@ -566,14 +567,18 @@ import android.widget.SeekBar;
         private void showEditTextDialog() {
             RecapElementModel elem = canvasView.getSelectedElement();
             if (elem == null) return;
-    
+            if (isEditableDynamicList(elem.getBinding())) {
+                showEditDynamicListDialog(elem);
+                return;
+            }
+
             EditText input = new EditText(this);
             String currentText = elem.getBinding() == RecapElementBinding.CUSTOM_STATIC_TEXT
                     ? elem.getCustomText()
-                    : recapData.getValue(elem.getBinding());
+                    : recapData != null ? recapData.getValue(elem.getBinding()) : "";
             input.setText(currentText != null ? currentText : "");
             input.setTextColor(Color.WHITE);
-    
+
             new AlertDialog.Builder(this)
                     .setTitle("Editar Conteúdo do Texto")
                     .setView(input)
@@ -587,7 +592,211 @@ import android.widget.SeekBar;
                     .setNegativeButton("Cancelar", null)
                     .show();
         }
-    
+
+        private boolean isEditableDynamicList(RecapElementBinding binding) {
+            return binding == RecapElementBinding.SECONDARY_ARTISTS_LIST
+                    || binding == RecapElementBinding.TOP_TRACKS_LIST
+                    || binding == RecapElementBinding.ACHIEVEMENTS_LIST;
+        }
+
+        private void showEditDynamicListDialog(RecapElementModel elem) {
+            RecapElementBinding binding = elem.getBinding();
+            EditText input = new EditText(this);
+            input.setTextColor(Color.WHITE);
+            input.setTextSize(14);
+            input.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
+            input.setMinLines(5);
+            input.setMaxLines(12);
+            input.setPadding(dp(12), dp(10), dp(12), dp(10));
+            input.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                    | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                    | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+            input.setText(getDynamicListEditorText(elem));
+
+            String title;
+            String instructions;
+            switch (binding) {
+                case SECONDARY_ARTISTS_LIST:
+                    title = "Editar Top 2 e Top 3 artistas";
+                    instructions = "Uma linha por artista: Nome | tempo. A posição segue a ordem das linhas.";
+                    break;
+                case TOP_TRACKS_LIST:
+                    title = "Editar Top músicas";
+                    instructions = "Uma música por linha: Música | Artista | duração. As capas existentes são preservadas pela posição da linha.";
+                    break;
+                case ACHIEVEMENTS_LIST:
+                    title = "Editar conquistas";
+                    instructions = "Uma conquista por linha: Nome | data.";
+                    break;
+                default:
+                    return;
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle(title)
+                    .setMessage(instructions)
+                    .setView(input)
+                    .setPositiveButton("Aplicar", (dialog, which) -> {
+                        undoRedoManager.pushState(currentTemplate);
+                        saveDynamicListOverride(elem, input.getText().toString());
+                        canvasView.invalidate();
+                        updateUndoRedoButtons();
+                    })
+                    .setNeutralButton("Restaurar automático", (dialog, which) -> {
+                        undoRedoManager.pushState(currentTemplate);
+                        elem.setCustomText("");
+                        canvasView.invalidate();
+                        updateUndoRedoButtons();
+                    })
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+        }
+
+        private String getDynamicListEditorText(RecapElementModel elem) {
+            RecapElementBinding binding = elem.getBinding();
+            StringBuilder text = new StringBuilder();
+            try {
+                if (elem.getCustomText() != null && !elem.getCustomText().trim().isEmpty()) {
+                    JSONObject saved = new JSONObject(elem.getCustomText());
+                    JSONArray items = saved.optJSONArray("items");
+                    if (items != null && binding.getKey().equals(saved.optString("type"))) {
+                        for (int i = 0; i < items.length(); i++) {
+                            JSONObject item = items.optJSONObject(i);
+                            if (item == null) continue;
+                            if (text.length() > 0) text.append("\n");
+                            appendEditableListLine(text, binding, item);
+                        }
+                        return text.toString();
+                    }
+                }
+            } catch (Exception ignored) { }
+
+            if (recapData == null) return "";
+            switch (binding) {
+                case SECONDARY_ARTISTS_LIST:
+                    for (DynamicRecapData.TopArtistItem artist : recapData.getSecondaryArtists()) {
+                        if (text.length() > 0) text.append("\n");
+                        text.append(artist.name);
+                        if (artist.timeFormatted != null && !artist.timeFormatted.isEmpty()) {
+                            text.append(" | ").append(artist.timeFormatted);
+                        }
+                    }
+                    break;
+                case TOP_TRACKS_LIST:
+                    for (DynamicRecapData.TopTrackItem track : recapData.getTopTracks()) {
+                        if (text.length() > 0) text.append("\n");
+                        text.append(track.title).append(" | ").append(track.artist);
+                        if (track.duration != null && !track.duration.isEmpty()) {
+                            text.append(" | ").append(track.duration);
+                        }
+                    }
+                    break;
+                case ACHIEVEMENTS_LIST:
+                    for (DynamicRecapData.AchievementItem achievement : recapData.getUnlockedAchievements()) {
+                        if (text.length() > 0) text.append("\n");
+                        text.append(achievement.title);
+                        if (achievement.formattedDate != null && !achievement.formattedDate.isEmpty()) {
+                            text.append(" | ").append(achievement.formattedDate);
+                        }
+                    }
+                    break;
+                default: break;
+            }
+            return text.toString();
+        }
+
+        private void appendEditableListLine(StringBuilder out, RecapElementBinding binding, JSONObject item) {
+            switch (binding) {
+                case SECONDARY_ARTISTS_LIST:
+                    out.append(item.optString("name", ""));
+                    if (!item.optString("time", "").isEmpty()) out.append(" | ").append(item.optString("time"));
+                    break;
+                case TOP_TRACKS_LIST:
+                    out.append(item.optString("title", "")).append(" | ").append(item.optString("artist", ""));
+                    if (!item.optString("duration", "").isEmpty()) out.append(" | ").append(item.optString("duration"));
+                    break;
+                case ACHIEVEMENTS_LIST:
+                    out.append(item.optString("title", ""));
+                    if (!item.optString("date", "").isEmpty()) out.append(" | ").append(item.optString("date"));
+                    break;
+                default: break;
+            }
+        }
+
+        private void saveDynamicListOverride(RecapElementModel elem, String rawText) {
+            RecapElementBinding binding = elem.getBinding();
+            JSONArray items = new JSONArray();
+            String[] lines = rawText.split("\\r?\\n");
+            JSONArray previousItems = getSavedDynamicListItems(elem, binding);
+            for (String rawLine : lines) {
+                String line = rawLine.trim();
+                if (line.isEmpty()) continue;
+                String[] parts = line.split("\\|", -1);
+                for (int i = 0; i < parts.length; i++) parts[i] = parts[i].trim();
+                try {
+                    JSONObject item = new JSONObject();
+                    int index = items.length();
+                    switch (binding) {
+                        case SECONDARY_ARTISTS_LIST:
+                            item.put("rank", index + 2);
+                            item.put("name", parts[0]);
+                            item.put("time", parts.length > 1 ? parts[1] : "");
+                            break;
+                        case TOP_TRACKS_LIST:
+                            item.put("title", parts[0]);
+                            item.put("artist", parts.length > 1 ? parts[1] : "");
+                            item.put("duration", parts.length > 2 ? parts[2] : "");
+                            JSONObject oldTrack = previousItems != null && index < previousItems.length()
+                                    ? previousItems.optJSONObject(index) : null;
+                            String artwork = oldTrack != null ? oldTrack.optString("artworkPath", "")
+                                    : getDefaultTrackArtworkPath(index);
+                            item.put("artworkPath", artwork);
+                            break;
+                        case ACHIEVEMENTS_LIST:
+                            JSONObject oldAchievement = previousItems != null && index < previousItems.length()
+                                    ? previousItems.optJSONObject(index) : null;
+                            item.put("id", oldAchievement != null
+                                    ? oldAchievement.optString("id", UUID.randomUUID().toString())
+                                    : getDefaultAchievementId(index));
+                            item.put("title", parts[0]);
+                            item.put("date", parts.length > 1 ? parts[1] : "");
+                            break;
+                        default: continue;
+                    }
+                    items.put(item);
+                } catch (Exception ignored) { }
+            }
+            try {
+                JSONObject root = new JSONObject();
+                root.put("type", binding.getKey());
+                root.put("items", items);
+                elem.setCustomText(root.toString());
+            } catch (Exception ignored) {
+                Toast.makeText(this, "Não foi possível salvar essa lista.", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        private JSONArray getSavedDynamicListItems(RecapElementModel elem, RecapElementBinding binding) {
+            try {
+                JSONObject root = new JSONObject(elem.getCustomText());
+                if (binding.getKey().equals(root.optString("type"))) return root.optJSONArray("items");
+            } catch (Exception ignored) { }
+            return null;
+        }
+
+        private String getDefaultTrackArtworkPath(int index) {
+            if (recapData == null || index < 0 || index >= recapData.getTopTracks().size()) return "";
+            String path = recapData.getTopTracks().get(index).artworkPath;
+            return path != null ? path : "";
+        }
+
+        private String getDefaultAchievementId(int index) {
+            if (recapData == null || index < 0 || index >= recapData.getUnlockedAchievements().size()) {
+                return UUID.randomUUID().toString();
+            }
+            return recapData.getUnlockedAchievements().get(index).id;
+        }
+
         /**
          * Opens the dedicated geometric-shapes section. Shapes are stored as normal
          * template elements, so position, size, rotation, color, opacity and layers
