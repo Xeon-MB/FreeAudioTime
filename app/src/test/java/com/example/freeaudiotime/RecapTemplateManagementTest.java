@@ -64,6 +64,21 @@ public class RecapTemplateManagementTest {
     }
 
     @Test
+    public void testDynamicItemIndexPersistsAndCopies() throws Exception {
+        RecapElementModel element = new RecapElementModel(
+                RecapElementBinding.TOP_TRACK_ITEM_TITLE, 0.1f, 0.2f, 0.5f, 0.04f);
+        element.setDynamicItemIndex(2);
+
+        RecapElementModel copy = element.copy();
+        assertEquals(2, copy.getDynamicItemIndex());
+
+        RecapElementModel restored = RecapElementModel.fromJsonObject(
+                new org.json.JSONObject(element.toJsonObject().toString()));
+        assertEquals(2, restored.getDynamicItemIndex());
+        assertEquals(RecapElementBinding.TOP_TRACK_ITEM_TITLE, restored.getBinding());
+    }
+
+    @Test
     public void testHideableOrReplaceableMissingData() {
         RecapElementModel elem = new RecapElementModel(RecapElementBinding.ACHIEVEMENTS_LIST, 0f, 0f, 1f, 0.1f);
         elem.setHideIfMissing(true);
