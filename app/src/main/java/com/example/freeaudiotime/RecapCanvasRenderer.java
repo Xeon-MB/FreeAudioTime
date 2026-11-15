@@ -387,8 +387,11 @@ public class RecapCanvasRenderer {
 
     private static void drawRegularPolygon(Canvas canvas, Paint paint, RectF bounds,
                                            int sides, float startAngle) {
-        float radiusX = bounds.width() * 0.48f;
-        float radiusY = bounds.height() * 0.48f;
+        // Use one radius for both axes so these remain regular polygons
+        // even when the element's resize bounds are not square.
+        float radius = Math.min(bounds.width(), bounds.height()) * 0.48f;
+        float radiusX = radius;
+        float radiusY = radius;
         Path path = new Path();
         for (int i = 0; i < sides; i++) {
             double angle = startAngle + i * (Math.PI * 2d / sides);
