@@ -251,6 +251,17 @@
                 android:textColor="#F3F1E7" />
 
             <Button
+                android:id="@+id/btnAddShape"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="8dp"
+                android:text="+ FORMAS"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:backgroundTint="#527A18"
+                android:textColor="#FFFFFF" />
+
+            <Button
                 android:id="@+id/btnAddSticker"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"
