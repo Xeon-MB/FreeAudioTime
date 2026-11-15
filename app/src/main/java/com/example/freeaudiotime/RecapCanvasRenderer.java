@@ -16,6 +16,9 @@ import android.graphics.Typeface;
 import android.text.TextPaint;
 import android.text.TextUtils;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.util.Collections;
 import java.util.Comparator;
@@ -746,16 +749,13 @@ public class RecapCanvasRenderer {
     }
 
     private static void renderSecondaryArtists(
-            Canvas canvas,
-            float x, float y, float w, float h,
-            DynamicRecapData data,
-            RecapElementModel elem,
-            int accentColor,
-            int textColor
+            Canvas canvas, float x, float y, float w, float h,
+            DynamicRecapData data, RecapElementModel elem, int accentColor, int textColor
     ) {
-        if (data == null || data.getSecondaryArtists().isEmpty()) {
-            if (elem.isHideIfMissing()) return;
-        }
+        JSONArray override = getDynamicListOverride(elem, RecapElementBinding.SECONDARY_ARTISTS_LIST);
+        int count = override != null ? override.length()
+                : data != null ? data.getSecondaryArtists().size() : 0;
+        if (count == 0 && elem.isHideIfMissing()) return;
 
         float scale = canvas.getWidth() / 360f;
         TextPaint headerPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
@@ -764,40 +764,47 @@ public class RecapCanvasRenderer {
         headerPaint.setFakeBoldText(true);
         canvas.drawText("ALSO IN ROTATION", x + 10 * scale, y + 30 * scale, headerPaint);
 
-        if (data == null) return;
         float rowY = y + 72 * scale;
         TextPaint posPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         posPaint.setColor(accentColor);
         posPaint.setTextSize(14f * scale);
         posPaint.setFakeBoldText(true);
-
         TextPaint namePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         namePaint.setColor(textColor);
         namePaint.setTextSize(12f * scale);
         namePaint.setFakeBoldText(true);
 
-        for (DynamicRecapData.TopArtistItem artist : data.getSecondaryArtists()) {
+        for (int i = 0; i < count; i++) {
             if (rowY + 38 * scale > y + h) break;
-            String pos = String.format("%02d", artist.rank);
-            canvas.drawText(pos, x + 10 * scale, rowY, posPaint);
-            String info = artist.name.toUpperCase() + (artist.timeFormatted.isEmpty() ? "" : " — " + artist.timeFormatted);
+            int rank;
+            String name, time;
+            if (override != null) {
+                JSONObject item = override.optJSONObject(i);
+                if (item == null) continue;
+                rank = item.optInt("rank", i + 2);
+                name = item.optString("name", "");
+                time = item.optString("time", "");
+            } else {
+                DynamicRecapData.TopArtistItem artist = data.getSecondaryArtists().get(i);
+                rank = artist.rank;
+                name = artist.name;
+                time = artist.timeFormatted;
+            }
+            canvas.drawText(String.format(java.util.Locale.ROOT, "%02d", rank), x + 10 * scale, rowY, posPaint);
+            String info = name.toUpperCase(java.util.Locale.ROOT) + (time.isEmpty() ? "" : " — " + time);
             canvas.drawText(info, x + 50 * scale, rowY, namePaint);
             rowY += 48 * scale;
         }
     }
 
     private static void renderTopTracks(
-            Context context,
-            Canvas canvas,
-            float x, float y, float w, float h,
-            DynamicRecapData data,
-            RecapElementModel elem,
-            int accentColor,
-            int textColor
+            Context context, Canvas canvas, float x, float y, float w, float h,
+            DynamicRecapData data, RecapElementModel elem, int accentColor, int textColor
     ) {
-        if (data == null || data.getTopTracks().isEmpty()) {
-            if (elem.isHideIfMissing()) return;
-        }
+        JSONArray override = getDynamicListOverride(elem, RecapElementBinding.TOP_TRACKS_LIST);
+        int count = override != null ? override.length()
+                : data != null ? data.getTopTracks().size() : 0;
+        if (count == 0 && elem.isHideIfMissing()) return;
 
         float scale = canvas.getWidth() / 360f;
         TextPaint titlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
@@ -806,62 +813,65 @@ public class RecapCanvasRenderer {
         titlePaint.setFakeBoldText(true);
         canvas.drawText("YOUR TOP TRACKS", x, y + 30 * scale, titlePaint);
 
-        if (data == null) return;
         float itemY = y + 70 * scale;
         float itemHeight = 60f * scale;
-
         TextPaint trackTitlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         trackTitlePaint.setColor(Color.WHITE);
         trackTitlePaint.setTextSize(11f * scale);
         trackTitlePaint.setFakeBoldText(true);
-
         TextPaint trackArtistPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         trackArtistPaint.setColor(textColor);
         trackArtistPaint.setTextSize(10f * scale);
 
-        for (DynamicRecapData.TopTrackItem track : data.getTopTracks()) {
+        for (int i = 0; i < count; i++) {
             if (itemY + itemHeight > y + h) break;
+            String title, artist, duration, artworkPath;
+            if (override != null) {
+                JSONObject item = override.optJSONObject(i);
+                if (item == null) continue;
+                title = item.optString("title", "");
+                artist = item.optString("artist", "");
+                duration = item.optString("duration", "");
+                artworkPath = item.optString("artworkPath", "");
+            } else {
+                DynamicRecapData.TopTrackItem track = data.getTopTracks().get(i);
+                title = track.title;
+                artist = track.artist;
+                duration = track.duration;
+                artworkPath = track.artworkPath;
+            }
 
             float thumbSize = itemHeight - 10 * scale;
             RectF thumbRect = new RectF(x, itemY, x + thumbSize, itemY + thumbSize);
             Bitmap artworkBitmap = null;
-            if (track.artworkPath != null && !track.artworkPath.isEmpty() && context != null) {
-                File file = new File(track.artworkPath);
-                if (!file.isAbsolute()) {
-                    file = new File(context.getFilesDir(), track.artworkPath);
-                }
-                if (file.exists()) {
-                    artworkBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
-                }
+            if (artworkPath != null && !artworkPath.isEmpty() && context != null) {
+                File file = new File(artworkPath);
+                if (!file.isAbsolute()) file = new File(context.getFilesDir(), artworkPath);
+                if (file.exists()) artworkBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
             }
-
             if (artworkBitmap != null) {
                 drawBitmapCenterCrop(canvas, artworkBitmap, thumbRect);
                 artworkBitmap.recycle();
             } else {
-                Paint p = new Paint();
+                Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
                 p.setColor(Color.rgb(30, 30, 30));
                 canvas.drawRect(thumbRect, p);
             }
-
-            canvas.drawText(track.title, x + thumbSize + 18 * scale, itemY + 23 * scale, trackTitlePaint);
-            canvas.drawText(track.artist + (track.duration.isEmpty() ? "" : " • " + track.duration),
+            canvas.drawText(title, x + thumbSize + 18 * scale, itemY + 23 * scale, trackTitlePaint);
+            canvas.drawText(artist + (duration.isEmpty() ? "" : " • " + duration),
                     x + thumbSize + 18 * scale, itemY + 48 * scale, trackArtistPaint);
             itemY += itemHeight;
         }
     }
 
     private static void renderAchievements(
-            Canvas canvas,
-            float x, float y, float w, float h,
-            DynamicRecapData data,
-            RecapElementModel elem,
-            int accentColor,
-            int textColor
+            Canvas canvas, float x, float y, float w, float h,
+            DynamicRecapData data, RecapElementModel elem, int accentColor, int textColor
     ) {
-        if (data == null || data.getUnlockedAchievements().isEmpty()) {
-            if (elem.isHideIfMissing()) return;
-        }
+        JSONArray override = getDynamicListOverride(elem, RecapElementBinding.ACHIEVEMENTS_LIST);
+        int count = override != null ? override.length()
+                : data != null ? data.getUnlockedAchievements().size() : 0;
+        if (count == 0 && elem.isHideIfMissing()) return;
 
         float scale = canvas.getWidth() / 360f;
         TextPaint titlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
@@ -870,17 +880,37 @@ public class RecapCanvasRenderer {
         titlePaint.setFakeBoldText(true);
         canvas.drawText("UNLOCKED ACHIEVEMENTS", x, y + 30 * scale, titlePaint);
 
-        if (data == null) return;
         float itemY = y + 72 * scale;
         TextPaint achPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         achPaint.setColor(textColor);
         achPaint.setTextSize(11f * scale);
-
-        for (DynamicRecapData.AchievementItem ach : data.getUnlockedAchievements()) {
+        for (int i = 0; i < count; i++) {
             if (itemY + 34 * scale > y + h) break;
-            canvas.drawText("🏆 " + ach.title + " (" + ach.formattedDate + ")",
+            String title, date;
+            if (override != null) {
+                JSONObject item = override.optJSONObject(i);
+                if (item == null) continue;
+                title = item.optString("title", "");
+                date = item.optString("date", "");
+            } else {
+                DynamicRecapData.AchievementItem achievement = data.getUnlockedAchievements().get(i);
+                title = achievement.title;
+                date = achievement.formattedDate;
+            }
+            canvas.drawText("🏆 " + title + (date.isEmpty() ? "" : " (" + date + ")"),
                     x, itemY, achPaint);
             itemY += 46 * scale;
+        }
+    }
+
+    private static JSONArray getDynamicListOverride(RecapElementModel elem, RecapElementBinding expected) {
+        if (elem == null || elem.getCustomText() == null || elem.getCustomText().trim().isEmpty()) return null;
+        try {
+            JSONObject root = new JSONObject(elem.getCustomText());
+            if (!expected.getKey().equals(root.optString("type"))) return null;
+            return root.optJSONArray("items");
+        } catch (Exception ignored) {
+            return null;
         }
     }
 
