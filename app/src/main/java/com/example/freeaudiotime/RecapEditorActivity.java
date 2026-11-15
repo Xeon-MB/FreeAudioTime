@@ -703,12 +703,12 @@ import org.json.JSONObject;
             undoRedoManager.pushState(currentTemplate);
             List<RecapElementModel> elements = currentTemplate.getElements();
             int insertionIndex = Math.max(0, elements.indexOf(group));
-            int firstAddedIndex = elements.size();
             int baseLayer = group.getZIndex();
             float baseX = group.getX() * 360f;
             float baseY = group.getY() * 640f;
             float groupWidth = group.getWidth() * 360f;
             elements.remove(group);
+            int firstAddedIndex = elements.size();
 
             RecapElementModel firstCreated = null;
             for (int i = 0; i < count; i++) {
