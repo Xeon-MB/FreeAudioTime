@@ -209,6 +209,19 @@ import android.widget.SeekBar;
         private void updateElementControlsForType(RecapElementModel element) {
             Button btnToggleVis = findViewById(R.id.btnToggleVisibility);
             btnToggleVis.setText(element.isVisible() ? "OCULTAR" : "EXIBIR");
+
+            boolean isShape = isShapeElement(element);
+            findViewById(R.id.btnEditText).setVisibility(isShape ? View.GONE : View.VISIBLE);
+            findViewById(R.id.btnFont).setVisibility(isShape ? View.GONE : View.VISIBLE);
+            findViewById(R.id.btnAlign).setVisibility(isShape ? View.GONE : View.VISIBLE);
+            findViewById(R.id.btnColor).setVisibility(View.VISIBLE);
+        }
+
+        private boolean isShapeElement(RecapElementModel element) {
+            return element != null
+                    && element.getBinding() == RecapElementBinding.CUSTOM_STATIC_IMAGE
+                    && element.getStickerType() != null
+                    && element.getStickerType().startsWith("SHAPE_");
         }
     
         private void setupToolbarActions() {
@@ -239,6 +252,7 @@ import android.widget.SeekBar;
             findViewById(R.id.btnAddData).setOnClickListener(v -> showAddDynamicDataDialog());
             findViewById(R.id.btnAddImage).setOnClickListener(v -> imagePickerLauncher.launch("image/*"));
             findViewById(R.id.btnAddSticker).setOnClickListener(v -> showAddStickerDialog());
+            findViewById(R.id.btnAddShape).setOnClickListener(v -> showShapesDialog());
             findViewById(R.id.btnCreateSticker).setOnClickListener(v -> showCreateStickerDialog());
             findViewById(R.id.btnImportSticker).setOnClickListener(v -> stickerImportLauncher.launch("image/*"));
             findViewById(R.id.btnBackground).setOnClickListener(v -> showBackgroundCustomizer());
@@ -574,6 +588,137 @@ import android.widget.SeekBar;
                     .show();
         }
     
+        /**
+         * Opens the dedicated geometric-shapes section. Shapes are stored as normal
+         * template elements, so position, size, rotation, color, opacity and layers
+         * remain editable and persist with the template.
+         */
+        private void showShapesDialog() {
+            String[] labels = {
+                    "Retângulo", "Retângulo arredondado", "Círculo",
+                    "Oval", "Triângulo", "Losango",
+                    "Pentágono", "Hexágono", "Estrela"
+            };
+            String[] codes = {
+                    "SHAPE_RECTANGLE", "SHAPE_ROUNDED_RECTANGLE", "SHAPE_CIRCLE",
+                    "SHAPE_OVAL", "SHAPE_TRIANGLE", "SHAPE_DIAMOND",
+                    "SHAPE_PENTAGON", "SHAPE_HEXAGON", "SHAPE_STAR"
+            };
+
+            android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+            LinearLayout grid = new LinearLayout(this);
+            grid.setOrientation(LinearLayout.VERTICAL);
+            grid.setPadding(dp(8), dp(8), dp(8), dp(8));
+            scroll.addView(grid);
+
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setTitle("Formas geométricas")
+                    .setMessage("Escolha uma forma preenchida. Depois, selecione-a no canvas para alterar cor, tamanho, rotação e camada.")
+                    .setView(scroll)
+                    .setNegativeButton("Fechar", null)
+                    .create();
+
+            for (int start = 0; start < codes.length; start += 3) {
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER);
+                LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                rowParams.bottomMargin = dp(8);
+                row.setLayoutParams(rowParams);
+
+                for (int column = 0; column < 3; column++) {
+                    int index = start + column;
+                    if (index >= codes.length) {
+                        row.addView(new View(this), new LinearLayout.LayoutParams(0,
+                                dp(112), 1f));
+                        continue;
+                    }
+
+                    String shapeCode = codes[index];
+                    LinearLayout card = new LinearLayout(this);
+                    card.setOrientation(LinearLayout.VERTICAL);
+                    card.setGravity(android.view.Gravity.CENTER);
+                    card.setPadding(dp(5), dp(8), dp(5), dp(8));
+
+                    android.graphics.drawable.GradientDrawable cardBackground =
+                            new android.graphics.drawable.GradientDrawable();
+                    cardBackground.setColor(Color.rgb(25, 34, 28));
+                    cardBackground.setCornerRadius(dp(12));
+                    cardBackground.setStroke(dp(1), Color.rgb(57, 78, 61));
+                    card.setBackground(cardBackground);
+
+                    LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                            0, dp(112), 1f);
+                    cardParams.setMargins(dp(4), dp(2), dp(4), dp(2));
+                    card.setLayoutParams(cardParams);
+
+                    ShapePreviewView preview = new ShapePreviewView(this, shapeCode);
+                    card.addView(preview, new LinearLayout.LayoutParams(dp(76), dp(64)));
+
+                    TextView label = new TextView(this);
+                    label.setText(labels[index]);
+                    label.setTextColor(Color.rgb(240, 235, 221));
+                    label.setTextSize(10);
+                    label.setGravity(android.view.Gravity.CENTER);
+                    label.setMaxLines(2);
+                    LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT);
+                    labelParams.topMargin = dp(4);
+                    card.addView(label, labelParams);
+
+                    card.setOnClickListener(v -> {
+                        addShapeElement(shapeCode);
+                        dialog.dismiss();
+                    });
+                    row.addView(card);
+                }
+                grid.addView(row);
+            }
+
+            dialog.show();
+        }
+
+        private void addShapeElement(String shapeCode) {
+            undoRedoManager.pushState(currentTemplate);
+
+            RecapElementModel shape = new RecapElementModel(
+                    RecapElementBinding.CUSTOM_STATIC_IMAGE,
+                    0.24f, 0.34f, 0.52f, 0.24f
+            );
+            shape.setStickerType(shapeCode);
+            shape.setFontColorHex("#B7FF00");
+            shape.setOpacity(1f);
+            shape.setZIndex(currentTemplate.getElements().size());
+
+            currentTemplate.getElements().add(shape);
+            canvasView.setSelectedElementId(shape.getId());
+            canvasView.invalidate();
+            updateUndoRedoButtons();
+        }
+
+        private class ShapePreviewView extends View {
+            private final String shapeCode;
+
+            ShapePreviewView(android.content.Context context, String shapeCode) {
+                super(context);
+                this.shapeCode = shapeCode;
+            }
+
+            @Override
+            protected void onDraw(android.graphics.Canvas canvas) {
+                super.onDraw(canvas);
+                RecapCanvasRenderer.drawShapePreview(
+                        canvas,
+                        new android.graphics.RectF(dp(4), dp(4), getWidth() - dp(4), getHeight() - dp(4)),
+                        shapeCode,
+                        "#B7FF00"
+                );
+            }
+        }
+
         private void showAddStickerDialog() {
             String[] names = {
                     "Disco", "Nota musical", "Onda sonora", "Estrela", "Coração",
