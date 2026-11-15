@@ -212,7 +212,10 @@ import org.json.JSONObject;
             btnToggleVis.setText(element.isVisible() ? "OCULTAR" : "EXIBIR");
 
             boolean isShape = isShapeElement(element);
-            findViewById(R.id.btnEditText).setVisibility(isShape ? View.GONE : View.VISIBLE);
+            boolean isDynamicList = isEditableDynamicList(element.getBinding());
+            Button editContentButton = findViewById(R.id.btnEditText);
+            editContentButton.setText(isDynamicList ? "EDITAR LISTA" : "EDITAR TEXTO");
+            editContentButton.setVisibility(isShape ? View.GONE : View.VISIBLE);
             findViewById(R.id.btnFont).setVisibility(isShape ? View.GONE : View.VISIBLE);
             findViewById(R.id.btnAlign).setVisibility(isShape ? View.GONE : View.VISIBLE);
             findViewById(R.id.btnColor).setVisibility(View.VISIBLE);
@@ -746,10 +749,8 @@ import org.json.JSONObject;
                             item.put("title", parts[0]);
                             item.put("artist", parts.length > 1 ? parts[1] : "");
                             item.put("duration", parts.length > 2 ? parts[2] : "");
-                            JSONObject oldTrack = previousItems != null && index < previousItems.length()
-                                    ? previousItems.optJSONObject(index) : null;
-                            String artwork = oldTrack != null ? oldTrack.optString("artworkPath", "")
-                                    : getDefaultTrackArtworkPath(index);
+                            String artwork = findTrackArtworkPath(previousItems,
+                                    parts[0], parts.length > 1 ? parts[1] : "", index);
                             item.put("artworkPath", artwork);
                             break;
                         case ACHIEVEMENTS_LIST:
@@ -782,6 +783,31 @@ import org.json.JSONObject;
                 if (binding.getKey().equals(root.optString("type"))) return root.optJSONArray("items");
             } catch (Exception ignored) { }
             return null;
+        }
+
+        private String findTrackArtworkPath(JSONArray previousItems, String title,
+                                            String artist, int fallbackIndex) {
+            if (previousItems != null) {
+                for (int i = 0; i < previousItems.length(); i++) {
+                    JSONObject old = previousItems.optJSONObject(i);
+                    if (old == null) continue;
+                    if (title.equalsIgnoreCase(old.optString("title", "").trim())
+                            && artist.equalsIgnoreCase(old.optString("artist", "").trim())) {
+                        return old.optString("artworkPath", "");
+                    }
+                }
+                JSONObject oldAtPosition = previousItems.optJSONObject(fallbackIndex);
+                if (oldAtPosition != null) return oldAtPosition.optString("artworkPath", "");
+            }
+            if (recapData != null) {
+                for (DynamicRecapData.TopTrackItem track : recapData.getTopTracks()) {
+                    if (title.equalsIgnoreCase(track.title.trim())
+                            && artist.equalsIgnoreCase(track.artist.trim())) {
+                        return track.artworkPath != null ? track.artworkPath : "";
+                    }
+                }
+            }
+            return getDefaultTrackArtworkPath(fallbackIndex);
         }
 
         private String getDefaultTrackArtworkPath(int index) {
