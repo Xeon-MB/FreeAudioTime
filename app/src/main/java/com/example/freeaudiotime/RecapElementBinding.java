@@ -38,6 +38,17 @@ public enum RecapElementBinding {
     TOP_TRACKS_TITLE("top_tracks_title", "Título Melhores Músicas", "YOUR TOP TRACKS"),
     TOP_TRACKS_LIST("top_tracks_list", "Lista Top Músicas com Capa", null),
 
+    // Individually editable dynamic list items
+    SECONDARY_ARTIST_RANK("secondary_artist_rank", "Posição do artista secundário", "02"),
+    SECONDARY_ARTIST_NAME("secondary_artist_name", "Nome do artista secundário", "ARTIST"),
+    SECONDARY_ARTIST_TIME("secondary_artist_time", "Tempo do artista secundário", "2H 10MIN"),
+    TOP_TRACK_ARTWORK("top_track_artwork", "Capa da música", null),
+    TOP_TRACK_ITEM_TITLE("top_track_item_title", "Nome da música", "TRACK"),
+    TOP_TRACK_ITEM_ARTIST("top_track_item_artist", "Artista da música", "ARTIST"),
+    TOP_TRACK_ITEM_DURATION("top_track_item_duration", "Duração da música", "3:45"),
+    ACHIEVEMENT_ITEM_TITLE("achievement_item_title", "Nome da conquista", "CONQUISTA"),
+    ACHIEVEMENT_ITEM_DATE("achievement_item_date", "Data da conquista", "15 NOV"),
+
     // Footer
     FOOTER_LINE_1("footer_line_1", "Linha 1 Rodapé", "A PERSONAL MUSIC ARCHIVE"),
     FOOTER_LINE_2("footer_line_2", "Linha 2 Rodapé", "EVERY MINUTE HAS A STORY.  //  FAT® 2026"),

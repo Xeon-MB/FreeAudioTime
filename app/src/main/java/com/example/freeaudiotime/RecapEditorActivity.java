@@ -93,7 +93,12 @@ import org.json.JSONObject;
         private final ActivityResultLauncher<String> imagePickerLauncher =
                 registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                     if (uri != null) {
-                        saveCustomImageElement(uri);
+                        RecapElementModel selected = canvasView != null ? canvasView.getSelectedElement() : null;
+                        if (selected != null && selected.getBinding() == RecapElementBinding.TOP_TRACK_ARTWORK) {
+                            replaceDynamicTrackArtwork(uri, selected);
+                        } else {
+                            saveCustomImageElement(uri);
+                        }
                     }
                 });
 
@@ -213,12 +218,14 @@ import org.json.JSONObject;
 
             boolean isShape = isShapeElement(element);
             boolean isDynamicList = isEditableDynamicList(element.getBinding());
+            boolean isTrackArtwork = element.getBinding() == RecapElementBinding.TOP_TRACK_ARTWORK;
             Button editContentButton = findViewById(R.id.btnEditText);
-            editContentButton.setText(isDynamicList ? "EDITAR LISTA" : "EDITAR TEXTO");
+            editContentButton.setText(isDynamicList ? "SEPARAR ITENS"
+                    : isTrackArtwork ? "TROCAR CAPA" : "EDITAR TEXTO");
             editContentButton.setVisibility(isShape ? View.GONE : View.VISIBLE);
-            findViewById(R.id.btnFont).setVisibility(isShape ? View.GONE : View.VISIBLE);
-            findViewById(R.id.btnAlign).setVisibility(isShape ? View.GONE : View.VISIBLE);
-            findViewById(R.id.btnColor).setVisibility(View.VISIBLE);
+            findViewById(R.id.btnFont).setVisibility(isShape || isTrackArtwork ? View.GONE : View.VISIBLE);
+            findViewById(R.id.btnAlign).setVisibility(isShape || isTrackArtwork ? View.GONE : View.VISIBLE);
+            findViewById(R.id.btnColor).setVisibility(isTrackArtwork ? View.GONE : View.VISIBLE);
         }
 
         private boolean isShapeElement(RecapElementModel element) {
@@ -264,7 +271,16 @@ import org.json.JSONObject;
             findViewById(R.id.btnExportDirect).setOnClickListener(v -> exportRecapAsImage());
     
             // Contextual Buttons
-            findViewById(R.id.btnEditText).setOnClickListener(v -> showEditTextDialog());
+            findViewById(R.id.btnEditText).setOnClickListener(v -> {
+                RecapElementModel selected = canvasView.getSelectedElement();
+                if (selected != null && isEditableDynamicList(selected.getBinding())) {
+                    splitSelectedDynamicList();
+                } else if (selected != null && selected.getBinding() == RecapElementBinding.TOP_TRACK_ARTWORK) {
+                    imagePickerLauncher.launch("image/*");
+                } else {
+                    showEditTextDialog();
+                }
+            });
             findViewById(R.id.btnColor).setOnClickListener(v -> showColorPickerDialog());
             findViewById(R.id.btnFont).setOnClickListener(v -> showFontPickerDialog());
             findViewById(R.id.btnAlign).setOnClickListener(v -> toggleAlignment());
@@ -571,13 +587,18 @@ import org.json.JSONObject;
             RecapElementModel elem = canvasView.getSelectedElement();
             if (elem == null) return;
             if (isEditableDynamicList(elem.getBinding())) {
-                showEditDynamicListDialog(elem);
+                splitSelectedDynamicList();
+                return;
+            }
+            if (elem.getBinding() == RecapElementBinding.TOP_TRACK_ARTWORK) {
+                imagePickerLauncher.launch("image/*");
                 return;
             }
 
+            boolean dynamicItemText = isDynamicItemTextBinding(elem.getBinding());
             EditText input = new EditText(this);
             String currentText = elem.getBinding() == RecapElementBinding.CUSTOM_STATIC_TEXT
-                    ? elem.getCustomText()
+                    || dynamicItemText ? (dynamicItemText ? getDynamicItemCurrentText(elem) : elem.getCustomText())
                     : recapData != null ? recapData.getValue(elem.getBinding()) : "";
             input.setText(currentText != null ? currentText : "");
             input.setTextColor(Color.WHITE);
@@ -588,12 +609,193 @@ import org.json.JSONObject;
                     .setPositiveButton("Aplicar", (dialog, which) -> {
                         undoRedoManager.pushState(currentTemplate);
                         elem.setCustomText(input.getText().toString());
-                        elem.setBinding(RecapElementBinding.CUSTOM_STATIC_TEXT);
+                        if (!dynamicItemText) {
+                            elem.setBinding(RecapElementBinding.CUSTOM_STATIC_TEXT);
+                        }
                         canvasView.invalidate();
                         updateUndoRedoButtons();
                     })
                     .setNegativeButton("Cancelar", null)
                     .show();
+        }
+
+        private boolean isDynamicItemTextBinding(RecapElementBinding binding) {
+            if (binding == null) return false;
+            switch (binding) {
+                case SECONDARY_ARTIST_RANK:
+                case SECONDARY_ARTIST_NAME:
+                case SECONDARY_ARTIST_TIME:
+                case TOP_TRACK_ITEM_TITLE:
+                case TOP_TRACK_ITEM_ARTIST:
+                case TOP_TRACK_ITEM_DURATION:
+                case ACHIEVEMENT_ITEM_TITLE:
+                case ACHIEVEMENT_ITEM_DATE:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private String getDynamicItemCurrentText(RecapElementModel elem) {
+            if (elem.getCustomText() != null && !elem.getCustomText().isEmpty()) return elem.getCustomText();
+            if (recapData == null || elem.getDynamicItemIndex() < 0) return "";
+            int index = elem.getDynamicItemIndex();
+            switch (elem.getBinding()) {
+                case SECONDARY_ARTIST_RANK:
+                    return index < recapData.getSecondaryArtists().size()
+                            ? String.format(java.util.Locale.ROOT, "%02d", recapData.getSecondaryArtists().get(index).rank) : "";
+                case SECONDARY_ARTIST_NAME:
+                    return index < recapData.getSecondaryArtists().size() ? recapData.getSecondaryArtists().get(index).name : "";
+                case SECONDARY_ARTIST_TIME:
+                    return index < recapData.getSecondaryArtists().size() ? recapData.getSecondaryArtists().get(index).timeFormatted : "";
+                case TOP_TRACK_ITEM_TITLE:
+                    return index < recapData.getTopTracks().size() ? recapData.getTopTracks().get(index).title : "";
+                case TOP_TRACK_ITEM_ARTIST:
+                    return index < recapData.getTopTracks().size() ? recapData.getTopTracks().get(index).artist : "";
+                case TOP_TRACK_ITEM_DURATION:
+                    return index < recapData.getTopTracks().size() ? recapData.getTopTracks().get(index).duration : "";
+                case ACHIEVEMENT_ITEM_TITLE:
+                    return index < recapData.getUnlockedAchievements().size()
+                            ? "🏆 " + recapData.getUnlockedAchievements().get(index).title : "";
+                case ACHIEVEMENT_ITEM_DATE:
+                    return index < recapData.getUnlockedAchievements().size()
+                            ? recapData.getUnlockedAchievements().get(index).formattedDate : "";
+                default:
+                    return "";
+            }
+        }
+
+        private void splitSelectedDynamicList() {
+            RecapElementModel group = canvasView.getSelectedElement();
+            if (group == null || !isEditableDynamicList(group.getBinding())) return;
+
+            RecapElementBinding binding = group.getBinding();
+            JSONArray overrideItems = getSavedDynamicListItems(group, binding);
+            int count;
+            if (overrideItems != null) {
+                count = overrideItems.length();
+            } else if (recapData != null) {
+                switch (binding) {
+                    case SECONDARY_ARTISTS_LIST: count = recapData.getSecondaryArtists().size(); break;
+                    case TOP_TRACKS_LIST: count = recapData.getTopTracks().size(); break;
+                    case ACHIEVEMENTS_LIST: count = recapData.getUnlockedAchievements().size(); break;
+                    default: count = 0;
+                }
+            } else {
+                count = 0;
+            }
+
+            float availableDesignHeight = group.getHeight() * 640f;
+            int visibleRows;
+            switch (binding) {
+                case SECONDARY_ARTISTS_LIST: visibleRows = availableDesignHeight < 110f ? 0 : 1 + (int) ((availableDesignHeight - 110f) / 48f); break;
+                case TOP_TRACKS_LIST: visibleRows = Math.max(0, (int) ((availableDesignHeight - 70f) / 60f)); break;
+                case ACHIEVEMENTS_LIST: visibleRows = availableDesignHeight < 106f ? 0 : 1 + (int) ((availableDesignHeight - 106f) / 46f); break;
+                default: visibleRows = count;
+            }
+            count = Math.min(count, visibleRows);
+
+            if (count == 0) {
+                Toast.makeText(this, "Aumente a altura da lista para separar os itens.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            undoRedoManager.pushState(currentTemplate);
+            List<RecapElementModel> elements = currentTemplate.getElements();
+            int insertionIndex = Math.max(0, elements.indexOf(group));
+            int baseLayer = group.getZIndex();
+            float baseX = group.getX() * 360f;
+            float baseY = group.getY() * 640f;
+            float groupWidth = group.getWidth() * 360f;
+            elements.remove(group);
+            int firstAddedIndex = elements.size();
+
+            RecapElementModel firstCreated = null;
+            for (int i = 0; i < count; i++) {
+                JSONObject override = overrideItems != null ? overrideItems.optJSONObject(i) : null;
+                if (binding == RecapElementBinding.SECONDARY_ARTISTS_LIST) {
+                    float rowY = baseY + 72f + i * 48f;
+                    firstCreated = addSplitTextElement(elements, RecapElementBinding.SECONDARY_ARTIST_RANK,
+                            i, baseX + 10f, rowY - 17f, 32f, 22f, 14f, "#B7FF00", true,
+                            override != null ? String.format(java.util.Locale.ROOT, "%02d", override.optInt("rank", i + 2)) : null, baseLayer);
+                    addSplitTextElement(elements, RecapElementBinding.SECONDARY_ARTIST_NAME,
+                            i, baseX + 50f, rowY - 17f, groupWidth * 0.52f, 22f, 12f, "#F0EBDD", true,
+                            override != null ? override.optString("name", "") : null, baseLayer + 1);
+                    addSplitTextElement(elements, RecapElementBinding.SECONDARY_ARTIST_TIME,
+                            i, baseX + groupWidth * 0.70f, rowY - 17f, groupWidth * 0.28f, 22f, 10f, "#B7FF00", false,
+                            override != null ? override.optString("time", "") : null, baseLayer + 2);
+                } else if (binding == RecapElementBinding.TOP_TRACKS_LIST) {
+                    float rowY = baseY + 70f + i * 60f;
+                    RecapElementModel artwork = new RecapElementModel(RecapElementBinding.TOP_TRACK_ARTWORK,
+                            (baseX) / 360f, (rowY + 5f) / 640f, 50f / 360f, 50f / 640f);
+                    artwork.setDynamicItemIndex(i);
+                    artwork.setZIndex(baseLayer + i * 4);
+                    if (override != null) artwork.setImagePath(override.optString("artworkPath", ""));
+                    elements.add(artwork);
+                    firstCreated = firstCreated == null ? artwork : firstCreated;
+                    addSplitTextElement(elements, RecapElementBinding.TOP_TRACK_ITEM_TITLE,
+                            i, baseX + 68f, rowY + 3f, groupWidth - 70f, 20f, 11f, "#FFFFFF", true,
+                            override != null ? override.optString("title", "") : null, baseLayer + i * 4 + 1);
+                    addSplitTextElement(elements, RecapElementBinding.TOP_TRACK_ITEM_ARTIST,
+                            i, baseX + 68f, rowY + 27f, groupWidth * 0.55f, 18f, 10f, "#F0EBDD", false,
+                            override != null ? override.optString("artist", "") : null, baseLayer + i * 4 + 2);
+                    addSplitTextElement(elements, RecapElementBinding.TOP_TRACK_ITEM_DURATION,
+                            i, baseX + groupWidth - 52f, rowY + 27f, 50f, 18f, 9f, "#B7FF00", false,
+                            override != null ? override.optString("duration", "") : null, baseLayer + i * 4 + 3);
+                } else if (binding == RecapElementBinding.ACHIEVEMENTS_LIST) {
+                    float rowY = baseY + 72f + i * 46f;
+                    firstCreated = addSplitTextElement(elements, RecapElementBinding.ACHIEVEMENT_ITEM_TITLE,
+                            i, baseX, rowY - 17f, groupWidth * 0.68f, 22f, 11f, "#F0EBDD", false,
+                            override != null ? "🏆 " + override.optString("title", "") : null, baseLayer + i * 2);
+                    addSplitTextElement(elements, RecapElementBinding.ACHIEVEMENT_ITEM_DATE,
+                            i, baseX + groupWidth * 0.70f, rowY - 17f, groupWidth * 0.30f, 22f, 9f, "#B7FF00", false,
+                            override != null ? override.optString("date", "") : null, baseLayer + i * 2 + 1);
+                }
+            }
+
+            List<RecapElementModel> createdElements = new java.util.ArrayList<>(
+                    elements.subList(firstAddedIndex, elements.size()));
+            elements.subList(firstAddedIndex, elements.size()).clear();
+            elements.addAll(Math.min(insertionIndex, elements.size()), createdElements);
+
+            if (firstCreated != null) canvasView.setSelectedElementId(firstCreated.getId());
+            canvasView.setTemplate(currentTemplate);
+            canvasView.invalidate();
+            updateUndoRedoButtons();
+            Toast.makeText(this, "Itens separados. Agora cada parte pode ser editada individualmente.", Toast.LENGTH_LONG).show();
+        }
+
+        private RecapElementModel addSplitTextElement(List<RecapElementModel> elements,
+                RecapElementBinding binding, int itemIndex, float x, float y, float width, float height,
+                float fontSize, String color, boolean bold, String customText, int zIndex) {
+            RecapElementModel element = new RecapElementModel(binding,
+                    x / 360f, y / 640f, width / 360f, height / 640f);
+            element.setDynamicItemIndex(itemIndex);
+            element.setFontSizeSp(fontSize);
+            element.setFontColorHex(color);
+            element.setBold(bold);
+            element.setZIndex(zIndex);
+            if (customText != null) element.setCustomText(customText);
+            elements.add(element);
+            return element;
+        }
+
+        private void replaceDynamicTrackArtwork(Uri uri, RecapElementModel element) {
+            try (InputStream input = getContentResolver().openInputStream(uri)) {
+                if (input == null) return;
+                File destination = new File(getFilesDir(), "track_cover_" + System.currentTimeMillis() + ".png");
+                try (FileOutputStream output = new FileOutputStream(destination)) {
+                    byte[] buffer = new byte[8192];
+                    int length;
+                    while ((length = input.read(buffer)) > 0) output.write(buffer, 0, length);
+                }
+                undoRedoManager.pushState(currentTemplate);
+                element.setImagePath(destination.getAbsolutePath());
+                canvasView.invalidate();
+                updateUndoRedoButtons();
+            } catch (Exception e) {
+                Toast.makeText(this, "Não foi possível trocar a capa.", Toast.LENGTH_SHORT).show();
+            }
         }
 
         private boolean isEditableDynamicList(RecapElementBinding binding) {

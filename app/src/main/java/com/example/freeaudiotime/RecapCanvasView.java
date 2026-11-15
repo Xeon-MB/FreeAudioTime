@@ -102,7 +102,8 @@ public interface OnElementSelectionListener {
                         elem.setWidth(Math.max(0.05f, Math.min(1.0f, elem.getWidth() * factor)));
                         elem.setHeight(Math.max(0.02f, Math.min(1.0f, elem.getHeight() * factor)));
                         if (elem.getBinding() != RecapElementBinding.CUSTOM_STATIC_IMAGE
-                                && elem.getBinding() != RecapElementBinding.TOP_ARTIST_IMAGE) {
+                                && elem.getBinding() != RecapElementBinding.TOP_ARTIST_IMAGE
+                                && elem.getBinding() != RecapElementBinding.TOP_TRACK_ARTWORK) {
                             elem.setFontSizeSp(Math.max(8f, Math.min(80f, elem.getFontSizeSp() * factor)));
                         }
                         invalidate();
@@ -323,6 +324,7 @@ public interface OnElementSelectionListener {
         RecapElementBinding binding = elem.getBinding();
         boolean isText = binding != RecapElementBinding.CUSTOM_STATIC_IMAGE
                 && binding != RecapElementBinding.TOP_ARTIST_IMAGE
+                && binding != RecapElementBinding.TOP_TRACK_ARTWORK
                 && binding != RecapElementBinding.TOP_TRACKS_LIST
                 && binding != RecapElementBinding.SECONDARY_ARTISTS_LIST
                 && binding != RecapElementBinding.ACHIEVEMENTS_LIST;
