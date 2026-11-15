@@ -685,8 +685,18 @@ import org.json.JSONObject;
                 count = 0;
             }
 
+            float availableDesignHeight = group.getHeight() * 640f;
+            int visibleRows;
+            switch (binding) {
+                case SECONDARY_ARTISTS_LIST: visibleRows = Math.max(0, (int) ((availableDesignHeight - 72f) / 48f)); break;
+                case TOP_TRACKS_LIST: visibleRows = Math.max(0, (int) ((availableDesignHeight - 70f) / 60f)); break;
+                case ACHIEVEMENTS_LIST: visibleRows = Math.max(0, (int) ((availableDesignHeight - 72f) / 46f)); break;
+                default: visibleRows = count;
+            }
+            count = Math.min(count, visibleRows);
+
             if (count == 0) {
-                Toast.makeText(this, "Não há itens para separar neste período.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Aumente a altura da lista para separar os itens.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
