@@ -225,7 +225,7 @@ import org.json.JSONObject;
             editContentButton.setVisibility(isShape ? View.GONE : View.VISIBLE);
             findViewById(R.id.btnFont).setVisibility(isShape || isTrackArtwork ? View.GONE : View.VISIBLE);
             findViewById(R.id.btnAlign).setVisibility(isShape || isTrackArtwork ? View.GONE : View.VISIBLE);
-            findViewById(R.id.btnColor).setVisibility(View.VISIBLE);
+            findViewById(R.id.btnColor).setVisibility(isTrackArtwork ? View.GONE : View.VISIBLE);
         }
 
         private boolean isShapeElement(RecapElementModel element) {
