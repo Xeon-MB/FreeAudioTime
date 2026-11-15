@@ -245,6 +245,16 @@ public class RecapCanvasRenderer {
     private static void renderCustomImageOrSticker(Context context, Canvas canvas, float x, float y, float w, float h, RecapElementModel elem) {
         RectF destRect = new RectF(x, y, x + w, y + h);
 
+        // Filled geometric shapes use the full element bounds and the selected fill color.
+        if (elem.getStickerType() != null && elem.getStickerType().startsWith("SHAPE_")) {
+            int saveCount = canvas.saveLayerAlpha(
+                    destRect, Math.max(0, Math.min(255, Math.round(elem.getOpacity() * 255f)))
+            );
+            drawShapePreview(canvas, destRect, elem.getStickerType(), elem.getFontColorHex());
+            canvas.restoreToCount(saveCount);
+            return;
+        }
+
         // Render optional rounded sticker background before the vector artwork.
         if (elem.getStickerType() != null && !elem.getStickerType().isEmpty()) {
             if (elem.getBackgroundColorHex() != null && !elem.getBackgroundColorHex().isEmpty()) {
@@ -284,6 +294,111 @@ public class RecapCanvasRenderer {
         Paint placeholderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         placeholderPaint.setColor(Color.rgb(45, 50, 42));
         canvas.drawRect(destRect, placeholderPaint);
+    }
+
+    /** Draws a solid geometric shape. No outline-only variants are used. */
+    public static void drawShapePreview(Canvas canvas, RectF bounds,
+                                        String shapeType, String colorHex) {
+        if (canvas == null || bounds == null || bounds.width() <= 0 || bounds.height() <= 0) return;
+
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(parseColor(colorHex, Color.rgb(183, 255, 0)));
+
+        String type = shapeType == null ? "" : shapeType.toUpperCase(java.util.Locale.ROOT);
+        float left = bounds.left;
+        float top = bounds.top;
+        float right = bounds.right;
+        float bottom = bounds.bottom;
+        float centerX = bounds.centerX();
+        float centerY = bounds.centerY();
+        float minSide = Math.min(bounds.width(), bounds.height());
+        RectF circleBounds = new RectF(
+                centerX - minSide / 2f, centerY - minSide / 2f,
+                centerX + minSide / 2f, centerY + minSide / 2f
+        );
+
+        switch (type) {
+            case "SHAPE_RECTANGLE":
+                canvas.drawRect(bounds, paint);
+                break;
+            case "SHAPE_ROUNDED_RECTANGLE":
+                float radius = Math.min(bounds.width(), bounds.height()) * 0.18f;
+                canvas.drawRoundRect(bounds, radius, radius, paint);
+                break;
+            case "SHAPE_CIRCLE":
+                canvas.drawOval(circleBounds, paint);
+                break;
+            case "SHAPE_OVAL":
+                canvas.drawOval(bounds, paint);
+                break;
+            case "SHAPE_TRIANGLE":
+                drawFilledPolygon(canvas, paint, new float[]{
+                        centerX, top,
+                        right, bottom,
+                        left, bottom
+                });
+                break;
+            case "SHAPE_DIAMOND":
+                drawFilledPolygon(canvas, paint, new float[]{
+                        centerX, top,
+                        right, centerY,
+                        centerX, bottom,
+                        left, centerY
+                });
+                break;
+            case "SHAPE_PENTAGON":
+                drawRegularPolygon(canvas, paint, bounds, 5, (float) -Math.PI / 2f);
+                break;
+            case "SHAPE_HEXAGON":
+                drawRegularPolygon(canvas, paint, bounds, 6, 0f);
+                break;
+            case "SHAPE_STAR":
+                Path star = new Path();
+                float outer = minSide * 0.49f;
+                float inner = outer * 0.43f;
+                for (int i = 0; i < 10; i++) {
+                    double angle = -Math.PI / 2d + i * Math.PI / 5d;
+                    float radiusStar = (i % 2 == 0) ? outer : inner;
+                    float px = centerX + (float) Math.cos(angle) * radiusStar;
+                    float py = centerY + (float) Math.sin(angle) * radiusStar;
+                    if (i == 0) star.moveTo(px, py);
+                    else star.lineTo(px, py);
+                }
+                star.close();
+                canvas.drawPath(star, paint);
+                break;
+            default:
+                canvas.drawRect(bounds, paint);
+                break;
+        }
+    }
+
+    private static void drawFilledPolygon(Canvas canvas, Paint paint, float[] points) {
+        if (points == null || points.length < 6) return;
+        Path path = new Path();
+        path.moveTo(points[0], points[1]);
+        for (int i = 2; i < points.length; i += 2) {
+            path.lineTo(points[i], points[i + 1]);
+        }
+        path.close();
+        canvas.drawPath(path, paint);
+    }
+
+    private static void drawRegularPolygon(Canvas canvas, Paint paint, RectF bounds,
+                                           int sides, float startAngle) {
+        float radiusX = bounds.width() * 0.48f;
+        float radiusY = bounds.height() * 0.48f;
+        Path path = new Path();
+        for (int i = 0; i < sides; i++) {
+            double angle = startAngle + i * (Math.PI * 2d / sides);
+            float px = bounds.centerX() + (float) Math.cos(angle) * radiusX;
+            float py = bounds.centerY() + (float) Math.sin(angle) * radiusY;
+            if (i == 0) path.moveTo(px, py);
+            else path.lineTo(px, py);
+        }
+        path.close();
+        canvas.drawPath(path, paint);
     }
 
     private static void renderSticker(Canvas canvas, RectF destRect, String stickerType, String colorHex) {
