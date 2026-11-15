@@ -688,9 +688,9 @@ import org.json.JSONObject;
             float availableDesignHeight = group.getHeight() * 640f;
             int visibleRows;
             switch (binding) {
-                case SECONDARY_ARTISTS_LIST: visibleRows = Math.max(0, (int) ((availableDesignHeight - 72f) / 48f)); break;
+                case SECONDARY_ARTISTS_LIST: visibleRows = availableDesignHeight < 110f ? 0 : 1 + (int) ((availableDesignHeight - 110f) / 48f); break;
                 case TOP_TRACKS_LIST: visibleRows = Math.max(0, (int) ((availableDesignHeight - 70f) / 60f)); break;
-                case ACHIEVEMENTS_LIST: visibleRows = Math.max(0, (int) ((availableDesignHeight - 72f) / 46f)); break;
+                case ACHIEVEMENTS_LIST: visibleRows = availableDesignHeight < 106f ? 0 : 1 + (int) ((availableDesignHeight - 106f) / 46f); break;
                 default: visibleRows = count;
             }
             count = Math.min(count, visibleRows);
