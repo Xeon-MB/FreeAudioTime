@@ -702,6 +702,8 @@ import org.json.JSONObject;
 
             undoRedoManager.pushState(currentTemplate);
             List<RecapElementModel> elements = currentTemplate.getElements();
+            int insertionIndex = Math.max(0, elements.indexOf(group));
+            int firstAddedIndex = elements.size();
             int baseLayer = group.getZIndex();
             float baseX = group.getX() * 360f;
             float baseY = group.getY() * 640f;
@@ -750,6 +752,11 @@ import org.json.JSONObject;
                             override != null ? override.optString("date", "") : null, baseLayer + i * 2 + 1);
                 }
             }
+
+            List<RecapElementModel> createdElements = new java.util.ArrayList<>(
+                    elements.subList(firstAddedIndex, elements.size()));
+            elements.subList(firstAddedIndex, elements.size()).clear();
+            elements.addAll(Math.min(insertionIndex, elements.size()), createdElements);
 
             if (firstCreated != null) canvasView.setSelectedElementId(firstCreated.getId());
             canvasView.setTemplate(currentTemplate);
