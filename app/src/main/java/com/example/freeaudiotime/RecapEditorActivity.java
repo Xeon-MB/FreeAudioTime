@@ -226,6 +226,10 @@ import org.json.JSONObject;
             findViewById(R.id.btnFont).setVisibility(isShape || isTrackArtwork ? View.GONE : View.VISIBLE);
             findViewById(R.id.btnAlign).setVisibility(isShape || isTrackArtwork ? View.GONE : View.VISIBLE);
             findViewById(R.id.btnColor).setVisibility(isTrackArtwork ? View.GONE : View.VISIBLE);
+            Button groupButton = findViewById(R.id.btnGroupElements);
+            groupButton.setVisibility(View.VISIBLE);
+            groupButton.setText(element.getGroupId() == null || element.getGroupId().isEmpty()
+                    ? "AGRUPAR" : "DESAGRUPAR");
         }
 
         private boolean isShapeElement(RecapElementModel element) {
@@ -289,6 +293,15 @@ import org.json.JSONObject;
             findViewById(R.id.btnLayerDown).setOnClickListener(v -> moveLayer(-1));
             findViewById(R.id.btnToggleVisibility).setOnClickListener(v -> toggleVisibility());
             findViewById(R.id.btnDeleteElement).setOnClickListener(v -> deleteSelectedElement());
+            findViewById(R.id.btnGroupElements).setOnClickListener(v -> {
+                RecapElementModel selected = canvasView.getSelectedElement();
+                if (selected == null) return;
+                if (selected.getGroupId() != null && !selected.getGroupId().isEmpty()) {
+                    ungroupSelectedElements();
+                } else {
+                    showGroupElementsDialog();
+                }
+            });
         }
     
     
@@ -710,7 +723,8 @@ import org.json.JSONObject;
             elements.remove(group);
             int firstAddedIndex = elements.size();
 
-            RecapElementModel firstCreated = null;
+            RecapElementModel firstCreated = addSplitSectionTitle(elements, binding,
+                    baseX, baseY, groupWidth, baseLayer);
             for (int i = 0; i < count; i++) {
                 JSONObject override = overrideItems != null ? overrideItems.optJSONObject(i) : null;
                 if (binding == RecapElementBinding.SECONDARY_ARTISTS_LIST) {
@@ -763,6 +777,44 @@ import org.json.JSONObject;
             canvasView.invalidate();
             updateUndoRedoButtons();
             Toast.makeText(this, "Itens separados. Agora cada parte pode ser editada individualmente.", Toast.LENGTH_LONG).show();
+        }
+
+        private RecapElementModel addSplitSectionTitle(List<RecapElementModel> elements,
+                RecapElementBinding listBinding, float x, float y, float width, int zIndex) {
+            RecapElementBinding titleBinding;
+            float titleX = x;
+            float titleY = y + 15f;
+            float titleWidth = width;
+            float fontSize;
+            String color = "#B7FF00";
+            switch (listBinding) {
+                case SECONDARY_ARTISTS_LIST:
+                    titleBinding = RecapElementBinding.ALSO_IN_ROTATION_TITLE;
+                    titleX += 10f;
+                    titleWidth -= 10f;
+                    fontSize = 11f;
+                    break;
+                case TOP_TRACKS_LIST:
+                    titleBinding = RecapElementBinding.TOP_TRACKS_TITLE;
+                    fontSize = 13f;
+                    break;
+                case ACHIEVEMENTS_LIST:
+                    titleBinding = RecapElementBinding.ACHIEVEMENTS_TITLE;
+                    fontSize = 12f;
+                    break;
+                default:
+                    return null;
+            }
+
+            for (RecapElementModel existing : elements) {
+                if (existing.getBinding() == titleBinding && existing.isVisible()) {
+                    return existing;
+                }
+            }
+
+            return addSplitTextElement(elements, titleBinding, -1,
+                    titleX, titleY, titleWidth, 24f, fontSize, color, true,
+                    null, zIndex);
         }
 
         private RecapElementModel addSplitTextElement(List<RecapElementModel> elements,
@@ -1915,6 +1967,79 @@ import org.json.JSONObject;
                     .show();
         }
     
+        private void showGroupElementsDialog() {
+            List<RecapElementModel> elements = currentTemplate.getElements();
+            if (elements == null || elements.size() < 2) {
+                Toast.makeText(this, "Adicione pelo menos dois elementos para agrupar.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String[] labels = new String[elements.size()];
+            boolean[] checked = new boolean[elements.size()];
+            RecapElementModel selected = canvasView.getSelectedElement();
+            String selectedGroupId = selected != null ? selected.getGroupId() : "";
+            for (int i = 0; i < elements.size(); i++) {
+                RecapElementModel item = elements.get(i);
+                String name = item.getBinding() != null ? item.getBinding().getDisplayName() : "Elemento";
+                if (item.getBinding() == RecapElementBinding.CUSTOM_STATIC_TEXT
+                        && item.getCustomText() != null && !item.getCustomText().isEmpty()) {
+                    name = item.getCustomText();
+                }
+                labels[i] = name;
+                checked[i] = item == selected || (!selectedGroupId.isEmpty()
+                        && selectedGroupId.equals(item.getGroupId()));
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Agrupar elementos")
+                    .setMessage("Selecione dois ou mais elementos. Eles poderão ser movidos juntos e continuarão editáveis individualmente.")
+                    .setMultiChoiceItems(labels, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
+                    .setPositiveButton("Agrupar", (dialog, which) -> {
+                        List<RecapElementModel> chosen = new java.util.ArrayList<>();
+                        for (int i = 0; i < elements.size(); i++) {
+                            if (checked[i]) chosen.add(elements.get(i));
+                        }
+                        if (chosen.size() < 2) {
+                            Toast.makeText(this, "Selecione pelo menos dois elementos.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        undoRedoManager.pushState(currentTemplate);
+                        java.util.Set<String> previousGroups = new java.util.HashSet<>();
+                        for (RecapElementModel item : chosen) {
+                            if (item.getGroupId() != null && !item.getGroupId().isEmpty()) {
+                                previousGroups.add(item.getGroupId());
+                            }
+                        }
+                        for (RecapElementModel item : elements) {
+                            if (previousGroups.contains(item.getGroupId())) item.setGroupId("");
+                        }
+
+                        String newGroupId = UUID.randomUUID().toString();
+                        for (RecapElementModel item : chosen) item.setGroupId(newGroupId);
+                        canvasView.setTemplate(currentTemplate);
+                        if (selected != null) canvasView.setSelectedElementId(selected.getId());
+                        updateUndoRedoButtons();
+                        Toast.makeText(this, chosen.size() + " elementos agrupados.", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+        }
+
+        private void ungroupSelectedElements() {
+            RecapElementModel selected = canvasView.getSelectedElement();
+            if (selected == null || selected.getGroupId() == null || selected.getGroupId().isEmpty()) return;
+            String groupId = selected.getGroupId();
+            undoRedoManager.pushState(currentTemplate);
+            for (RecapElementModel item : currentTemplate.getElements()) {
+                if (groupId.equals(item.getGroupId())) item.setGroupId("");
+            }
+            canvasView.setTemplate(currentTemplate);
+            canvasView.setSelectedElementId(selected.getId());
+            updateUndoRedoButtons();
+            Toast.makeText(this, "Grupo desfeito.", Toast.LENGTH_SHORT).show();
+        }
+
         private void showLayersDialog() {
             List<RecapElementModel> list = currentTemplate.getElements();
             String[] items = new String[list.size()];
