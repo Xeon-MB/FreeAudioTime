@@ -1991,8 +1991,7 @@ import org.json.JSONObject;
             }
 
             new AlertDialog.Builder(this)
-                    .setTitle("Agrupar elementos")
-                    .setMessage("Selecione dois ou mais elementos. Eles poderão ser movidos juntos e continuarão editáveis individualmente.")
+                    .setTitle("Selecione 2 ou mais elementos")
                     .setMultiChoiceItems(labels, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
                     .setPositiveButton("Agrupar", (dialog, which) -> {
                         List<RecapElementModel> chosen = new java.util.ArrayList<>();
