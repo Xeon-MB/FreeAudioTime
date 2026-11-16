@@ -79,6 +79,20 @@ public class RecapTemplateManagementTest {
     }
 
     @Test
+    public void testElementGroupIdPersistsAndCopies() throws Exception {
+        RecapElementModel element = new RecapElementModel(
+                RecapElementBinding.CUSTOM_STATIC_TEXT, 0.1f, 0.2f, 0.3f, 0.1f);
+        element.setGroupId("test-group");
+
+        RecapElementModel copy = element.copy();
+        assertEquals("test-group", copy.getGroupId());
+
+        RecapElementModel restored = RecapElementModel.fromJsonObject(
+                new org.json.JSONObject(element.toJsonObject().toString()));
+        assertEquals("test-group", restored.getGroupId());
+    }
+
+    @Test
     public void testHideableOrReplaceableMissingData() {
         RecapElementModel elem = new RecapElementModel(RecapElementBinding.ACHIEVEMENTS_LIST, 0f, 0f, 1f, 0.1f);
         elem.setHideIfMissing(true);
