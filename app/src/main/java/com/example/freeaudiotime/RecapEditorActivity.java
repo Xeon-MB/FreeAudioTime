@@ -202,6 +202,15 @@ import org.json.JSONObject;
         }
     
         private void setupElementSelectionListener() {
+        canvasView.setOnMultiSelectionChangedListener(count -> {
+            Button groupButton = findViewById(R.id.btnGroupElements);
+            if (canvasView.isMultiSelectMode()) {
+                groupButton.setText(count >= 2 ? "AGRUPAR (" + count + ")" : "SELECIONE MAIS");
+                groupButton.setEnabled(count >= 2);
+                groupButton.setAlpha(count >= 2 ? 1f : 0.55f);
+                findViewById(R.id.btnCancelGroupSelection).setVisibility(View.VISIBLE);
+            }
+        });
             canvasView.setOnElementSelectionListener(element -> {
                 if (element != null) {
                     elementControlsScroll.setVisibility(View.VISIBLE);
@@ -294,13 +303,29 @@ import org.json.JSONObject;
             findViewById(R.id.btnToggleVisibility).setOnClickListener(v -> toggleVisibility());
             findViewById(R.id.btnDeleteElement).setOnClickListener(v -> deleteSelectedElement());
             findViewById(R.id.btnGroupElements).setOnClickListener(v -> {
-                RecapElementModel selected = canvasView.getSelectedElement();
-                if (selected == null) return;
-                if (selected.getGroupId() != null && !selected.getGroupId().isEmpty()) {
-                    ungroupSelectedElements();
-                } else {
-                    showGroupElementsDialog();
+                if (canvasView.isMultiSelectMode()) {
+                    groupSelectedCanvasElements();
+                    return;
                 }
+                RecapElementModel selected = canvasView.getSelectedElement();
+                if (selected != null && selected.getGroupId() != null && !selected.getGroupId().isEmpty()) {
+                    ungroupSelectedElements();
+                    return;
+                }
+                canvasView.setMultiSelectMode(true);
+                Button groupButton = findViewById(R.id.btnGroupElements);
+                groupButton.setText("SELECIONE MAIS");
+                groupButton.setEnabled(false);
+                groupButton.setAlpha(0.55f);
+                Toast.makeText(this, "Toque nos elementos que deseja agrupar.", Toast.LENGTH_SHORT).show();
+            });
+            findViewById(R.id.btnCancelGroupSelection).setOnClickListener(v -> {
+                canvasView.setMultiSelectMode(false);
+                findViewById(R.id.btnCancelGroupSelection).setVisibility(View.GONE);
+                Button groupButton = findViewById(R.id.btnGroupElements);
+                groupButton.setText("AGRUPAR");
+                groupButton.setEnabled(true);
+                groupButton.setAlpha(1f);
             });
         }
     
@@ -1967,62 +1992,38 @@ import org.json.JSONObject;
                     .show();
         }
     
-        private void showGroupElementsDialog() {
-            List<RecapElementModel> elements = currentTemplate.getElements();
-            if (elements == null || elements.size() < 2) {
-                Toast.makeText(this, "Adicione pelo menos dois elementos para agrupar.", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        private void groupSelectedCanvasElements() {
+            java.util.Set<String> selectedIds = canvasView.getMultiSelectedElementIds();
+            if (selectedIds.size() < 2) return;
 
-            String[] labels = new String[elements.size()];
-            boolean[] checked = new boolean[elements.size()];
-            RecapElementModel selected = canvasView.getSelectedElement();
-            String selectedGroupId = selected != null ? selected.getGroupId() : "";
-            for (int i = 0; i < elements.size(); i++) {
-                RecapElementModel item = elements.get(i);
-                String name = item.getBinding() != null ? item.getBinding().getDisplayName() : "Elemento";
-                if (item.getBinding() == RecapElementBinding.CUSTOM_STATIC_TEXT
-                        && item.getCustomText() != null && !item.getCustomText().isEmpty()) {
-                    name = item.getCustomText();
+            undoRedoManager.pushState(currentTemplate);
+            java.util.Set<String> previousGroups = new java.util.HashSet<>();
+            for (RecapElementModel element : currentTemplate.getElements()) {
+                if (selectedIds.contains(element.getId())
+                        && element.getGroupId() != null && !element.getGroupId().isEmpty()) {
+                    previousGroups.add(element.getGroupId());
                 }
-                labels[i] = name;
-                checked[i] = item == selected || (!selectedGroupId.isEmpty()
-                        && selectedGroupId.equals(item.getGroupId()));
+            }
+            for (RecapElementModel element : currentTemplate.getElements()) {
+                if (previousGroups.contains(element.getGroupId())) element.setGroupId("");
             }
 
-            new AlertDialog.Builder(this)
-                    .setTitle("Selecione 2 ou mais elementos")
-                    .setMultiChoiceItems(labels, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
-                    .setPositiveButton("Agrupar", (dialog, which) -> {
-                        List<RecapElementModel> chosen = new java.util.ArrayList<>();
-                        for (int i = 0; i < elements.size(); i++) {
-                            if (checked[i]) chosen.add(elements.get(i));
-                        }
-                        if (chosen.size() < 2) {
-                            Toast.makeText(this, "Selecione pelo menos dois elementos.", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
+            String groupId = UUID.randomUUID().toString();
+            for (RecapElementModel element : currentTemplate.getElements()) {
+                if (selectedIds.contains(element.getId())) element.setGroupId(groupId);
+            }
 
-                        undoRedoManager.pushState(currentTemplate);
-                        java.util.Set<String> previousGroups = new java.util.HashSet<>();
-                        for (RecapElementModel item : chosen) {
-                            if (item.getGroupId() != null && !item.getGroupId().isEmpty()) {
-                                previousGroups.add(item.getGroupId());
-                            }
-                        }
-                        for (RecapElementModel item : elements) {
-                            if (previousGroups.contains(item.getGroupId())) item.setGroupId("");
-                        }
-
-                        String newGroupId = UUID.randomUUID().toString();
-                        for (RecapElementModel item : chosen) item.setGroupId(newGroupId);
-                        canvasView.setTemplate(currentTemplate);
-                        if (selected != null) canvasView.setSelectedElementId(selected.getId());
-                        updateUndoRedoButtons();
-                        Toast.makeText(this, chosen.size() + " elementos agrupados.", Toast.LENGTH_SHORT).show();
-                    })
-                    .setNegativeButton("Cancelar", null)
-                    .show();
+            String firstSelectedId = selectedIds.iterator().next();
+            canvasView.setMultiSelectMode(false);
+            canvasView.setTemplate(currentTemplate);
+            canvasView.setSelectedElementId(firstSelectedId);
+            findViewById(R.id.btnCancelGroupSelection).setVisibility(View.GONE);
+            Button groupButton = findViewById(R.id.btnGroupElements);
+            groupButton.setText("DESAGRUPAR");
+            groupButton.setEnabled(true);
+            groupButton.setAlpha(1f);
+            updateUndoRedoButtons();
+            Toast.makeText(this, selectedIds.size() + " elementos agrupados.", Toast.LENGTH_SHORT).show();
         }
 
         private void ungroupSelectedElements() {
