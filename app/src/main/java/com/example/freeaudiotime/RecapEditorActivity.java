@@ -1728,6 +1728,7 @@ import org.json.JSONObject;
                 @Override public void onStopTrackingTouch(SeekBar seekBar) { }
             });
             wheel.setOnColorChangedListener(preview::setBackgroundColor);
+            RecentColorPalette.addTo(this, container, wheel, padding, preview::setBackgroundColor);
             container.addView(brightness, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -1738,6 +1739,7 @@ import org.json.JSONObject;
                     .setView(container)
                     .setPositiveButton("Aplicar", (dialog, which) -> {
                         undoRedoManager.pushState(currentTemplate);
+                        RecentColorPalette.remember(this, wheel.getColor());
                         onSelected.onColorSelected(wheel.getColor());
                         updateUndoRedoButtons();
                     })

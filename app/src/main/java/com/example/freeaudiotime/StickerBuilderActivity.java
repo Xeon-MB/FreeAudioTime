@@ -379,6 +379,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
             @Override public void onStopTrackingTouch(SeekBar bar) { }
         });
         wheel.setOnColorChangedListener(preview::setBackgroundColor);
+        RecentColorPalette.addTo(this, content, wheel, padding, preview::setBackgroundColor);
         content.addView(brightness, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
@@ -387,6 +388,7 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 .setView(content)
                 .setPositiveButton("Aplicar", (dialog, which) -> {
                     currentColor = wheel.getColor();
+                    RecentColorPalette.remember(this, currentColor);
                     drawingView.setColor(currentColor);
                     updateCurrentColorIndicator();
                 })
@@ -533,6 +535,10 @@ public class StickerBuilderActivity extends AppCompatActivity {
             selectedColor[0] = color;
             updatePreview.run();
         });
+        RecentColorPalette.addTo(this, content, wheel, padding, color -> {
+            selectedColor[0] = color;
+            updatePreview.run();
+        });
         updatePreview.run();
 
         new AlertDialog.Builder(this)
@@ -540,6 +546,8 @@ public class StickerBuilderActivity extends AppCompatActivity {
                 .setView(content)
                 .setPositiveButton("Aplicar", (dialog, which) -> {
                     int color = selectedColor[0];
+                    RecentColorPalette.remember(this, Color.argb(selectedAlpha[0],
+                            Color.red(color), Color.green(color), Color.blue(color)));
                     drawingView.setArtworkBackgroundColor(Color.argb(selectedAlpha[0],
                             Color.red(color), Color.green(color), Color.blue(color)));
                 })
