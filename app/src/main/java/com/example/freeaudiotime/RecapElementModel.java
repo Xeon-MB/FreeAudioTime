@@ -17,6 +17,7 @@ public class RecapElementModel {
     private RecapElementBinding binding;
     private String customText; // used for custom text or label overrides
     private int dynamicItemIndex = -1; // row index for independently editable dynamic recap items
+    private String groupId = ""; // shared identifier for elements moved as a group
 
     // Normalized Layout (0.0f - 1.0f relative to canvas width/height)
     private float x;
@@ -88,6 +89,7 @@ public class RecapElementModel {
         copy.binding = this.binding;
         copy.customText = this.customText;
         copy.dynamicItemIndex = this.dynamicItemIndex;
+        copy.groupId = this.groupId;
         copy.x = this.x;
         copy.y = this.y;
         copy.width = this.width;
@@ -116,6 +118,7 @@ public class RecapElementModel {
         json.put("binding", binding != null ? binding.getKey() : RecapElementBinding.CUSTOM_STATIC_TEXT.getKey());
         json.put("customText", customText != null ? customText : "");
         json.put("dynamicItemIndex", dynamicItemIndex);
+        json.put("groupId", groupId != null ? groupId : "");
         json.put("x", (double) x);
         json.put("y", (double) y);
         json.put("width", (double) width);
@@ -145,6 +148,7 @@ public class RecapElementModel {
         model.binding = RecapElementBinding.fromKey(json.optString("binding", ""));
         model.customText = json.optString("customText", "");
         model.dynamicItemIndex = json.optInt("dynamicItemIndex", -1);
+        model.groupId = json.optString("groupId", "");
         model.x = (float) json.optDouble("x", 0.0);
         model.y = (float) json.optDouble("y", 0.0);
         model.width = (float) json.optDouble("width", 0.9);
@@ -179,6 +183,9 @@ public class RecapElementModel {
 
     public int getDynamicItemIndex() { return dynamicItemIndex; }
     public void setDynamicItemIndex(int dynamicItemIndex) { this.dynamicItemIndex = dynamicItemIndex; }
+
+    public String getGroupId() { return groupId; }
+    public void setGroupId(String groupId) { this.groupId = groupId != null ? groupId : ""; }
 
     public float getX() { return x; }
     public void setX(float x) { this.x = x; }
