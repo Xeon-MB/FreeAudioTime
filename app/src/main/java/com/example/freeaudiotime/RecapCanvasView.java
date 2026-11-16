@@ -225,7 +225,7 @@ public interface OnElementSelectionListener {
                     artistImage,
                     dynamicBgColor,
                     dynamicAccentColor,
-                    selectedElementId
+                    multiSelectMode ? null : selectedElementId
             );
             if (multiSelectMode && !multiSelectedElementIds.isEmpty()) {
                 Paint selectionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
