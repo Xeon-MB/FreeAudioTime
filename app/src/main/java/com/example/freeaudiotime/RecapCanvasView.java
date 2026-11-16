@@ -3,6 +3,7 @@ package com.example.freeaudiotime;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -12,6 +13,8 @@ import android.view.View;
 import androidx.annotation.Nullable;
 
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Comparator;
 import java.util.List;
 
@@ -32,6 +35,9 @@ public class RecapCanvasView extends View {
     private int dynamicAccentColor = 0;
 
     private String selectedElementId = null;
+    private final Set<String> multiSelectedElementIds = new HashSet<>();
+    private boolean multiSelectMode = false;
+    private OnMultiSelectionChangedListener multiSelectionChangedListener;
     private OnElementSelectionListener selectionListener;
     private OnTemplateChangeListener templateChangeListener;
 
@@ -62,6 +68,10 @@ public class RecapCanvasView extends View {
     private float resizeStartFontSize;
 public interface OnElementSelectionListener {
         void onElementSelected(@Nullable RecapElementModel element);
+    }
+
+    public interface OnMultiSelectionChangedListener {
+        void onSelectionChanged(int selectedCount);
     }
 
     public interface OnTemplateChangeListener {
@@ -156,6 +166,31 @@ public interface OnElementSelectionListener {
         this.selectionListener = listener;
     }
 
+    public void setOnMultiSelectionChangedListener(OnMultiSelectionChangedListener listener) {
+        this.multiSelectionChangedListener = listener;
+    }
+
+    public void setMultiSelectMode(boolean enabled) {
+        multiSelectMode = enabled;
+        multiSelectedElementIds.clear();
+        if (!enabled) selectedElementId = null;
+        invalidate();
+        if (multiSelectionChangedListener != null) multiSelectionChangedListener.onSelectionChanged(0);
+        if (!enabled && selectionListener != null) selectionListener.onElementSelected(null);
+    }
+
+    public boolean isMultiSelectMode() { return multiSelectMode; }
+
+    public Set<String> getMultiSelectedElementIds() {
+        return new HashSet<>(multiSelectedElementIds);
+    }
+
+    public void clearMultiSelection() {
+        multiSelectedElementIds.clear();
+        invalidate();
+        if (multiSelectionChangedListener != null) multiSelectionChangedListener.onSelectionChanged(0);
+    }
+
     public void setOnTemplateChangeListener(OnTemplateChangeListener listener) {
         this.templateChangeListener = listener;
     }
@@ -192,6 +227,21 @@ public interface OnElementSelectionListener {
                     dynamicAccentColor,
                     selectedElementId
             );
+            if (multiSelectMode && !multiSelectedElementIds.isEmpty()) {
+                Paint selectionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                selectionPaint.setStyle(Paint.Style.STROKE);
+                selectionPaint.setStrokeWidth(3f * getResources().getDisplayMetrics().density);
+                selectionPaint.setColor(0xFFB7FF00);
+                for (RecapElementModel element : template.getElements()) {
+                    if (multiSelectedElementIds.contains(element.getId()) && element.isVisible()) {
+                        float left = element.getX() * getWidth();
+                        float top = element.getY() * getHeight();
+                        float right = left + element.getWidth() * getWidth();
+                        float bottom = top + element.getHeight() * getHeight();
+                        canvas.drawRect(left, top, right, bottom, selectionPaint);
+                    }
+                }
+            }
         }
     }
 
@@ -211,7 +261,7 @@ public interface OnElementSelectionListener {
                 isResizing = false;
                 activeResizeHandle = HANDLE_NONE;
 
-                if (selectedElementId != null) {
+                if (!multiSelectMode && selectedElementId != null) {
                     RecapElementModel elem = findElementById(selectedElementId);
                     if (elem != null) {
                         activeResizeHandle = getHandleAtPoint(touchX, touchY, elem);
@@ -366,6 +416,20 @@ public interface OnElementSelectionListener {
                 hit = elem;
                 break;
             }
+        }
+
+        if (multiSelectMode) {
+            if (hit != null) {
+                if (!multiSelectedElementIds.add(hit.getId())) {
+                    multiSelectedElementIds.remove(hit.getId());
+                }
+                selectedElementId = hit.getId();
+                invalidate();
+                if (multiSelectionChangedListener != null) {
+                    multiSelectionChangedListener.onSelectionChanged(multiSelectedElementIds.size());
+                }
+            }
+            return;
         }
 
         if (hit != null) {
