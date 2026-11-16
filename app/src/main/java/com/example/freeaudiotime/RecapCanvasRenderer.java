@@ -891,29 +891,37 @@ public class RecapCanvasRenderer {
             DynamicRecapData data, RecapElementModel elem, int accentColor, int textColor
     ) {
         JSONArray override = getDynamicListOverride(elem, RecapElementBinding.TOP_TRACKS_LIST);
-        int count = override != null ? override.length()
+        int availableCount = override != null ? override.length()
                 : data != null ? data.getTopTracks().size() : 0;
+        int count = Math.min(5, availableCount);
         if (count == 0 && elem.isHideIfMissing()) return;
 
         float scale = canvas.getWidth() / 360f;
+        float headerHeight = Math.min(26f * scale, Math.max(16f * scale, h * 0.18f));
+        float rowHeight = Math.max(1f, (h - headerHeight) / 5f);
+
         TextPaint titlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         titlePaint.setColor(accentColor);
-        titlePaint.setTextSize(13f * scale);
+        titlePaint.setTextSize(Math.min(13f * scale, headerHeight * 0.58f));
         titlePaint.setFakeBoldText(true);
-        canvas.drawText("YOUR TOP TRACKS", x, y + 30 * scale, titlePaint);
+        canvas.drawText("YOUR TOP TRACKS", x, y + headerHeight * 0.78f, titlePaint);
 
-        float itemY = y + 70 * scale;
-        float itemHeight = 60f * scale;
         TextPaint trackTitlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         trackTitlePaint.setColor(Color.WHITE);
-        trackTitlePaint.setTextSize(11f * scale);
+        trackTitlePaint.setTextSize(Math.max(7f * scale, Math.min(11f * scale, rowHeight * 0.30f)));
         trackTitlePaint.setFakeBoldText(true);
         TextPaint trackArtistPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         trackArtistPaint.setColor(textColor);
-        trackArtistPaint.setTextSize(10f * scale);
+        trackArtistPaint.setTextSize(Math.max(6f * scale, Math.min(9f * scale, rowHeight * 0.25f)));
 
+        float textX = x + rowHeight * 0.78f + 10f * scale;
+        float textWidth = Math.max(0f, x + w - textX);
         for (int i = 0; i < count; i++) {
-            if (itemY + itemHeight > y + h) break;
+            float itemY = y + headerHeight + i * rowHeight;
+            float thumbSize = Math.max(1f, Math.min(rowHeight - 3f * scale, rowHeight * 0.88f));
+            RectF thumbRect = new RectF(x, itemY + (rowHeight - thumbSize) / 2f,
+                    x + thumbSize, itemY + (rowHeight + thumbSize) / 2f);
+
             String title, artist, duration, artworkPath;
             if (override != null) {
                 JSONObject item = override.optJSONObject(i);
@@ -930,8 +938,6 @@ public class RecapCanvasRenderer {
                 artworkPath = track.artworkPath;
             }
 
-            float thumbSize = itemHeight - 10 * scale;
-            RectF thumbRect = new RectF(x, itemY, x + thumbSize, itemY + thumbSize);
             Bitmap artworkBitmap = null;
             if (artworkPath != null && !artworkPath.isEmpty() && context != null) {
                 File file = new File(artworkPath);
@@ -942,14 +948,24 @@ public class RecapCanvasRenderer {
                 drawBitmapCenterCrop(canvas, artworkBitmap, thumbRect);
                 artworkBitmap.recycle();
             } else {
-                Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-                p.setColor(Color.rgb(30, 30, 30));
-                canvas.drawRect(thumbRect, p);
+                Paint placeholder = new Paint(Paint.ANTI_ALIAS_FLAG);
+                placeholder.setColor(Color.rgb(30, 30, 30));
+                canvas.drawRect(thumbRect, placeholder);
             }
-            canvas.drawText(title, x + thumbSize + 18 * scale, itemY + 23 * scale, trackTitlePaint);
-            canvas.drawText(artist + (duration.isEmpty() ? "" : " • " + duration),
-                    x + thumbSize + 18 * scale, itemY + 48 * scale, trackArtistPaint);
-            itemY += itemHeight;
+
+            String shortDuration = duration == null ? "" : duration
+                    .replaceAll("(?i)reproduções", "reprod.")
+                    .replaceAll("(?i)reproduc(?:oes|oes)", "reprod.");
+            String titleLine = TextUtils.ellipsize(title, trackTitlePaint,
+                    textWidth, TextUtils.TruncateAt.END).toString();
+            String artistLine = artist + (shortDuration.isEmpty() ? "" : " • " + shortDuration);
+            artistLine = TextUtils.ellipsize(artistLine, trackArtistPaint,
+                    textWidth, TextUtils.TruncateAt.END).toString();
+
+            float titleBaseline = itemY + rowHeight * 0.43f;
+            float artistBaseline = itemY + rowHeight * 0.78f;
+            canvas.drawText(titleLine, textX, titleBaseline, trackTitlePaint);
+            canvas.drawText(artistLine, textX, artistBaseline, trackArtistPaint);
         }
     }
 
